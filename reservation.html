@@ -1,0 +1,708 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>예약</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+  <style>
+    body{font-family:'Noto Sans KR',system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial;}
+    .safe-bottom{padding-bottom:env(safe-area-inset-bottom);}
+    .rs-lock{overflow:hidden;}
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <div class="mx-auto w-full max-w-[480px] min-h-screen bg-white">
+    <!-- Top bar -->
+    <div class="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-gray-100">
+      <div class="h-14 px-4 flex items-center justify-between">
+        <button id="rsBack" class="p-2 -ml-2 rounded-xl active:scale-95" aria-label="뒤로가기">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m15 18-6-6 6-6"/>
+          </svg>
+        </button>
+        <div class="font-black text-gray-900">예약</div>
+        <div class="w-10"></div>
+      </div>
+    </div>
+
+    <div class="p-5 pb-10 safe-bottom">
+      <!-- Lowest price card (same timer as main) -->
+      <div class="rounded-2xl overflow-hidden shadow-lg border border-gray-200 mb-5">
+        <div class="bg-[#0B0F1A] text-white p-5 relative">
+          <div class="text-[11px] font-black tracking-widest text-red-500">LOWEST PRICE GUARANTEE</div>
+          <div class="mt-2 text-2xl font-black leading-tight">24시간 한정<br/>최저가 보장</div>
+          <div class="mt-3 text-[12px] text-white/80 font-medium space-y-1">
+            <div>🔥 상담 고객 한정 특별가를 드립니다.</div>
+            <div>🏷️ 타 예약사이트 대비 <span class="text-red-400 font-black">최저가 보장</span></div>
+            <div>💸 최저가를 발견하시면 차액을 보상해드립니다.</div>
+          </div>
+
+          <div class="absolute right-4 top-4">
+            <div class="text-[10px] font-black bg-white/15 border border-white/20 px-3 py-1.5 rounded-full">고객센터 이용고객 대상</div>
+          </div>
+
+          <div class="absolute right-4 bottom-4">
+            <div class="flex items-center gap-2 bg-black/40 border border-white/15 px-3 py-1.5 rounded-xl">
+              <span class="text-[11px] font-black text-yellow-300">⏱</span>
+              <span id="rsTimer" class="font-mono font-black tracking-tight text-[14px]">00:00:00</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Basic reservation summary -->
+      <div class="mb-2">
+        <span class="inline-flex items-center bg-blue-50 text-blue-600 text-[11px] font-black px-3 py-1 rounded-full border border-blue-100">타사이트 대비 최저가보장</span>
+      </div>
+
+      <div class="text-2xl font-black text-gray-900 tracking-tight" id="rsStayName">태안 엘플레이트풀빌라</div>
+      <div class="text-xl font-black text-gray-900" id="rsRoomName">D</div>
+
+      <div class="mt-5 grid grid-cols-2 gap-3">
+        <div class="bg-gray-50 border border-gray-100 rounded-2xl p-4">
+          <div class="text-[11px] font-bold text-gray-400">체크인</div>
+          <div class="mt-1">
+            <div id="rsCheckInDate" class="text-[14px] font-black text-gray-900">-</div>
+            <div id="rsCheckInTime" class="text-[12px] font-bold text-gray-500">-</div>
+          </div>
+        </div>
+        <div class="bg-gray-50 border border-gray-100 rounded-2xl p-4">
+          <div class="text-[11px] font-bold text-gray-400">체크아웃</div>
+          <div class="mt-1">
+            <div id="rsCheckOutDate" class="text-[14px] font-black text-gray-900">-</div>
+            <div id="rsCheckOutTime" class="text-[12px] font-bold text-gray-500">-</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-4 flex items-center justify-between text-[13px] text-gray-700">
+        <div class="font-bold" id="rsGuestLine">기준 0명 / 최대 0명</div>
+        <div class="font-bold"><span class="text-gray-500">숙박</span> / <span id="rsNights">-</span>박 <span id="rsTotalPrice">-</span></div>
+      </div>
+
+      <!-- 이용정보 -->
+      <div class="mt-8">
+        <div class="text-[15px] font-black text-gray-900">이용정보</div>
+
+        <div class="mt-4 space-y-4">
+          <div>
+            <div class="text-[12px] font-bold text-gray-500">성명 <span class="text-red-500">*</span></div>
+            <input id="rsName" type="text" class="mt-2 w-full border border-gray-200 rounded-xl px-4 py-3 text-[14px] font-medium outline-none focus:ring-2 focus:ring-blue-500" placeholder="방문자의 성함을 입력해주세요." />
+          </div>
+
+          <div>
+            <div class="text-[12px] font-bold text-gray-500">휴대폰번호 <span class="text-red-500">*</span></div>
+            <div class="mt-2 flex items-center gap-2">
+              <input id="rsPhone" inputmode="numeric" type="tel" class="flex-1 border border-gray-200 rounded-xl px-4 py-3 text-[14px] font-medium outline-none focus:ring-2 focus:ring-blue-500" placeholder="방문자의 휴대폰번호를 입력해주세요." maxlength="13" />
+        <button id="rsSendOtpBtn" disabled class="shrink-0 px-4 py-3 rounded-xl text-[13px] font-black bg-gray-200 text-gray-400">인증번호받기</button>
+            </div>
+          </div>
+
+          <div id="rsOtpWrap" class="hidden">
+            <div class="text-[12px] font-bold text-gray-500">인증번호 <span class="text-red-500">*</span></div>
+      <div class="mt-2 flex items-center gap-2">
+        <input id="rsOtp" inputmode="numeric" type="tel" class="flex-1 border border-gray-200 rounded-xl px-4 py-3 text-[14px] font-medium outline-none focus:ring-2 focus:ring-blue-500" placeholder="인증번호 4자리를 입력해주세요." maxlength="4" />
+        <button id="rsOtpVerifyBtn" disabled class="shrink-0 px-4 py-3 rounded-xl text-[13px] font-black bg-gray-200 text-gray-400">인증하기</button>
+      </div>
+          </div>
+
+    <div>
+      <div class="text-[12px] font-bold text-gray-500">요청사항</div>
+      <input id="rsRequest" type="text" class="mt-2 w-full border border-gray-200 rounded-xl px-4 py-3 text-[14px] font-medium outline-none focus:ring-2 focus:ring-blue-500" placeholder="요청사항을 입력해주세요." />
+    </div>
+        </div>
+      </div>
+
+<!-- 할인 -->
+<div class="mt-10">
+  <div class="text-[15px] font-black text-gray-900">할인</div>
+  <div class="mt-4 rounded-2xl border border-blue-200 bg-blue-50 p-4 flex items-center justify-between">
+    <div class="flex items-start gap-3">
+      <input id="rsDiscount" type="radio" name="rsDiscount" checked class="mt-1" />
+      <div>
+        <div class="text-[14px] font-black text-gray-900">최저가 보장 할인</div>
+        <div class="text-[12px] font-bold text-blue-700">지금만 가능한 특가 혜택</div>
+      </div>
+    </div>
+    <div class="text-right">
+      <div class="inline-flex items-center gap-2">
+        <span class="bg-blue-600 text-white text-[10px] font-black px-2 py-0.5 rounded">BEST</span>
+        <span id="rsDiscountValue" class="text-[16px] font-black text-blue-600">-4,000원</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 결제 금액 -->
+<div class="mt-10">
+  <div class="text-[15px] font-black text-gray-900">결제 금액</div>
+  <div class="mt-4 border-t border-gray-100 pt-4 space-y-3">
+    <div class="flex items-center justify-between text-[13px] text-gray-700">
+      <div class="font-bold">상품 금액</div>
+      <div id="rsProductAmount" class="font-bold">-</div>
+    </div>
+    <div class="flex items-center justify-between text-[13px] text-gray-700">
+      <div class="font-bold">할인 금액 <span class="ml-2 text-[11px] font-black bg-gray-100 text-gray-600 px-2 py-0.5 rounded">2% 할인</span></div>
+      <div id="rsDiscountAmount" class="font-bold">-</div>
+    </div>
+    <div class="border-t border-gray-100 pt-4 flex items-center justify-between">
+      <div class="text-[14px] font-black text-gray-900">총 결제 금액</div>
+      <div id="rsFinalAmount" class="text-[18px] font-black text-blue-600">-</div>
+    </div>
+  </div>
+</div>
+
+<!-- 결제 수단 -->
+<div class="mt-10">
+  <div class="text-[15px] font-black text-gray-900">결제 수단 <span class="text-red-500">*</span></div>
+  <div class="mt-4 border border-gray-200 rounded-2xl overflow-hidden">
+    <!-- item template -->
+    <label class="flex items-center gap-3 p-4 border-b border-gray-100 last:border-0 cursor-pointer">
+      <input type="radio" name="rsPayMethod" value="card" required />
+      <div class="w-6 h-6 flex items-center justify-center">
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+      </div>
+      <div class="text-[13px] font-bold text-gray-700">신용/체크카드</div>
+    </label>
+    <label class="flex items-center gap-3 p-4 border-b border-gray-100 last:border-0 cursor-pointer">
+      <input type="radio" name="rsPayMethod" value="vbank" />
+      <div class="w-6 h-6 flex items-center justify-center">
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M6 21V7"/><path d="M18 21V7"/><path d="M4 7h16"/><path d="M12 3 20 7H4l8-4Z"/></svg>
+      </div>
+      <div class="text-[13px] font-bold text-gray-700">가상계좌</div>
+    </label>
+    <label class="flex items-center gap-3 p-4 border-b border-gray-100 last:border-0 cursor-pointer">
+      <input type="radio" name="rsPayMethod" value="naverpay" />
+      <div class="w-6 h-6 rounded-md bg-[#1EC800] text-white font-black flex items-center justify-center text-[12px]">N</div>
+      <div class="text-[13px] font-bold text-gray-700">네이버페이</div>
+    </label>
+    <label class="flex items-center gap-3 p-4 border-b border-gray-100 last:border-0 cursor-pointer">
+      <input type="radio" name="rsPayMethod" value="kakaopay" />
+      <div class="w-6 h-6 rounded-md bg-[#FEE500] text-black font-black flex items-center justify-center text-[12px]">P</div>
+      <div class="text-[13px] font-bold text-gray-700">카카오페이</div>
+    </label>
+    <label class="flex items-center gap-3 p-4 border-b border-gray-100 last:border-0 cursor-pointer">
+      <input type="radio" name="rsPayMethod" value="tosspay" />
+      <div class="w-6 h-6 rounded-full bg-[#0A74FF] text-white font-black flex items-center justify-center text-[9px]">toss</div>
+      <div class="text-[13px] font-bold text-gray-700">토스페이</div>
+    </label>
+    <label class="flex items-center gap-3 p-4 border-b border-gray-100 last:border-0 cursor-pointer">
+      <input type="radio" name="rsPayMethod" value="quick" />
+      <div class="w-6 h-6 rounded-full bg-[#0A74FF] text-white font-black flex items-center justify-center text-[9px]">toss</div>
+      <div class="text-[13px] font-bold text-gray-700">퀵계좌이체</div>
+    </label>
+  </div>
+</div>
+
+
+<!-- 안내 문구 -->
+<div class="mt-10">
+  <div class="space-y-3">
+    <div class="flex gap-3 rounded-2xl bg-[#FFF8F1] border border-[#FFE6CC] p-4">
+      <div class="mt-0.5 w-6 h-6 rounded-full bg-[#FF7A00]/15 flex items-center justify-center text-[#FF7A00] font-black text-[14px]">i</div>
+      <div>
+        <div class="text-[13px] font-black text-gray-900">현장결제</div>
+        <div class="mt-1 text-[12px] font-bold text-gray-600 leading-relaxed">추가인원 비용등의 현장결제 발생 상품을 확인하세요.</div>
+      </div>
+    </div>
+
+    <div class="flex gap-3 rounded-2xl bg-[#FFF8F1] border border-[#FFE6CC] p-4">
+      <div class="mt-0.5 w-6 h-6 rounded-full bg-[#FF7A00]/15 flex items-center justify-center text-[#FF7A00] font-black text-[14px]">i</div>
+      <div>
+        <div class="text-[13px] font-black text-gray-900">취소불가 및 수수료</div>
+        <div class="mt-1 text-[12px] font-bold text-gray-600 leading-relaxed">취소 및 환불규정에 따라 취소불가, 수수료가 발생할 수 있습니다.</div>
+      </div>
+    </div>
+
+    <div class="flex gap-3 rounded-2xl bg-[#FFF8F1] border border-[#FFE6CC] p-4">
+      <div class="mt-0.5 w-6 h-6 rounded-full bg-[#FF7A00]/15 flex items-center justify-center text-[#FF7A00] font-black text-[14px]">i</div>
+      <div>
+        <div class="text-[13px] font-black text-gray-900">미성년자 및 법정대리인 필수</div>
+        <div class="mt-1 text-[12px] font-bold text-gray-600 leading-relaxed">미성년자는 법정대리인 동행 없이 투숙이 불가능합니다.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 약관동의 -->
+<div class="mt-10">
+  <div class="border border-gray-200 rounded-2xl overflow-hidden bg-white">
+    <div class="p-4">
+      <label class="flex items-center gap-3 cursor-pointer select-none">
+        <input id="rsAgreeAll" type="checkbox" class="w-5 h-5 accent-blue-600" />
+        <div class="text-[16px] font-black text-gray-900">전체 동의</div>
+      </label>
+    </div>
+    <div class="border-t border-gray-100">
+      <div class="flex items-center justify-between px-4 py-3">
+        <label class="flex items-center gap-3 cursor-pointer select-none">
+          <input id="rsAgreeRule" type="checkbox" class="w-4 h-4 accent-blue-600" />
+          <div class="text-[13px] font-bold text-gray-700">[필수] 이용규칙</div>
+        </label>
+        <button class="rsViewTerm text-[13px] font-black text-blue-600" data-term="rule" data-title="[필수] 이용규칙">보기</button>
+      </div>
+      <div class="flex items-center justify-between px-4 py-3 border-t border-gray-100">
+        <label class="flex items-center gap-3 cursor-pointer select-none">
+          <input id="rsAgreeCancel" type="checkbox" class="w-4 h-4 accent-blue-600" />
+          <div class="text-[13px] font-bold text-gray-700">[필수] 취소 및 환불 규칙</div>
+        </label>
+        <button class="rsViewTerm text-[13px] font-black text-blue-600" data-term="cancel" data-title="[필수] 취소 및 환불 규칙">보기</button>
+      </div>
+      <div class="flex items-center justify-between px-4 py-3 border-t border-gray-100">
+        <label class="flex items-center gap-3 cursor-pointer select-none">
+          <input id="rsAgreePrivacy" type="checkbox" class="w-4 h-4 accent-blue-600" />
+          <div class="text-[13px] font-bold text-gray-700">[필수] 개인정보 제3자 제공 안내</div>
+        </label>
+        <button class="rsViewTerm text-[13px] font-black text-blue-600" data-term="privacy" data-title="[필수] 개인정보 제3자 제공 안내">보기</button>
+      </div>
+      <div class="flex items-center justify-between px-4 py-3 border-t border-gray-100">
+        <label class="flex items-center gap-3 cursor-pointer select-none">
+          <input id="rsAgreeAge" type="checkbox" class="w-4 h-4 accent-blue-600" />
+          <div class="text-[13px] font-bold text-gray-700">[필수] 본인은 만 19세 이상입니다.</div>
+        </label>
+        <button class="rsViewTerm text-[13px] font-black text-blue-600" data-term="age" data-title="[필수] 본인은 만 19세 이상입니다.">보기</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Footer (메인과 동일) -->
+<footer class="px-6 pb-12 pt-10 bg-white border-t border-gray-100 mt-10">
+  <div class="text-[12px] text-gray-500 font-medium leading-relaxed">
+    <div class="flex flex-wrap gap-x-2">
+      <span class="font-black text-gray-700">트립일레븐</span>
+      <span>서울 금천구 가산디지털1로 186 제이플라츠 903호</span>
+    </div>
+    <div class="mt-1">대표명: 손기훈 <span class="mx-1 text-gray-300">|</span> 사업자번호: 367-88-00819</div>
+    <div class="mt-4">트립일레븐은 통신판매 중개자로서 예약서비스만 제공하며, 예약 관련 서비스는 숙박업체의 책임하에 운영되고 있습니다.</div>
+    <div class="mt-4 font-black text-gray-300 tracking-wide">COPYRIGHTⓒ(주)트립일레븐. ALL RIGHTS RESERVED.</div>
+  </div>
+</footer>
+
+<!-- fixed pay button 공간 확보 -->
+<div class="h-32"></div>
+
+    </div>
+  </div>
+
+
+
+<!-- 약관 보기 모달 -->
+<div id="rsTermsModal" class="fixed inset-0 z-[90] hidden">
+  <div class="absolute inset-0 bg-black/40" data-close="1"></div>
+
+  <div class="absolute inset-x-0 bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] bg-white rounded-t-3xl shadow-2xl flex flex-col" style="height: 85vh; height: 85dvh;">
+    <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+      <div id="rsTermsTitle" class="font-black text-gray-900 text-[15px]">약관</div>
+      <button id="rsTermsClose" class="p-2 -mr-2 rounded-xl active:scale-95" aria-label="닫기">
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
+        </svg>
+      </button>
+    </div>
+
+    <div id="rsTermsBody" class="p-5 flex-1 overflow-y-auto text-[13px] font-medium text-gray-700 leading-relaxed">
+      테스트 중입니다. 임의의 약관 내용을 표시합니다.
+    </div>
+
+    <div class="p-5 border-t border-gray-100">
+      <button id="rsTermsAgreeClose" class="w-full h-14 rounded-2xl bg-blue-600 text-white font-black text-[16px] active:scale-[0.98] transition">동의 후 닫기</button>
+    </div>
+  </div>
+</div>
+
+<!-- 하단 결제하기 버튼 (고정) -->
+<div id="rsPayBar" class="fixed left-1/2 -translate-x-1/2 bottom-0 z-[80] w-full max-w-[480px] px-4" style="padding-bottom: calc(env(safe-area-inset-bottom) + 14px);">
+  <div class="relative">
+    <button id="rsPayBtn" disabled class="w-full h-14 rounded-2xl bg-gray-200 text-gray-400 font-black text-[16px]">
+      0원 결제하기
+    </button>
+    <button id="rsPayBtnGuard" class="absolute inset-0 rounded-2xl" style="display:none" aria-label="필수 항목 안내"></button>
+  </div>
+</div>
+
+
+  <script>
+    // ---------- helpers
+    function comma(n){
+      const x = Number(n);
+      if (!Number.isFinite(x)) return '-';
+      return x.toLocaleString('ko-KR');
+    }
+    function toDate(iso){
+      const p = String(iso||'').split('-').map(v=>parseInt(v,10));
+      if (p.length!==3 || p.some(n=>Number.isNaN(n))) return null;
+      const d = new Date(p[0], p[1]-1, p[2]);
+      d.setHours(0,0,0,0);
+      return d;
+    }
+    function formatKR(iso){
+      const d = toDate(iso);
+      if (!d) return '-';
+      const y = d.getFullYear();
+      const m = String(d.getMonth()+1).padStart(2,'0');
+      const day = String(d.getDate()).padStart(2,'0');
+      const dow = ['일','월','화','수','목','금','토'][d.getDay()];
+      return `${y}.${m}.${day} (${dow})`;
+    }
+    function calcNights(aIso,bIso){
+      const a = toDate(aIso);
+      const b = toDate(bIso);
+      if (!a || !b) return 1;
+      const diff = Math.max(1, Math.round((b.getTime()-a.getTime())/86400000));
+      return diff;
+    }
+
+    // ---------- back
+    document.getElementById('rsBack').addEventListener('click', function(){
+      // 메인에서 선택한 일정/인원/스크롤을 유지한 채로 복귀
+      location.href = 'index.html?restore=1';
+    });
+
+    // ---------- timer (shared with main)
+    (function initTimer(){
+      const key = 'villa_promo_end_time';
+      let endTime = 0;
+      try{ endTime = parseInt(localStorage.getItem(key) || '0', 10); } catch { endTime = 0; }
+      if (!endTime || Number.isNaN(endTime) || endTime <= Date.now()) {
+        endTime = Date.now() + 24*60*60*1000;
+        try{ localStorage.setItem(key, String(endTime)); } catch {}
+      }
+      function pad(n){ return String(n).padStart(2,'0'); }
+      function tick(){
+        const diff = Math.max(0, endTime - Date.now());
+        const t = Math.floor(diff/1000);
+        const h = Math.floor(t/3600);
+        const m = Math.floor((t%3600)/60);
+        const s = t%60;
+        document.getElementById('rsTimer').textContent = `${pad(h)}:${pad(m)}:${pad(s)}`;
+      }
+      tick();
+      setInterval(tick, 1000);
+    })();
+
+    // ---------- apply params
+    (function(){
+      const p = new URLSearchParams(location.search);
+      const room = p.get('room') || 'D';
+      const checkin = p.get('checkin');
+      const checkout = p.get('checkout');
+      const minGuests = p.get('minGuests') || '0';
+      const maxGuests = p.get('maxGuests') || '0';
+      const ciTime = p.get('checkinTime') || '15:00';
+      const coTime = p.get('checkoutTime') || '11:00';
+
+      document.getElementById('rsRoomName').textContent = room;
+      document.getElementById('rsCheckInDate').textContent = formatKR(checkin);
+      document.getElementById('rsCheckOutDate').textContent = formatKR(checkout);
+      document.getElementById('rsCheckInTime').textContent = ciTime;
+      document.getElementById('rsCheckOutTime').textContent = coTime;
+      document.getElementById('rsGuestLine').textContent = `기준 ${minGuests}명 / 최대 ${maxGuests}명`;
+
+      const nights = calcNights(checkin, checkout);
+      document.getElementById('rsNights').textContent = String(nights);
+
+      // 데모 금액(라이브에서는 API로 연결)
+      const perNight = 159000;
+      const total = perNight * nights;
+      const discount = 4000;
+      const final = Math.max(0, total - discount);
+      window.rsFinalAmountNumber = final;
+
+      document.getElementById('rsTotalPrice').textContent = `${comma(total)}원`;
+      const $pa = document.getElementById('rsProductAmount');
+      const $da = document.getElementById('rsDiscountAmount');
+      const $fa = document.getElementById('rsFinalAmount');
+      if ($pa) $pa.textContent = `${comma(total)}원`;
+      if ($da) $da.textContent = `-${comma(discount)}원`;
+      if ($fa) $fa.textContent = `${comma(final)}원`;
+      if (window.rsUpdatePayBtn) window.rsUpdatePayBtn();
+    })();
+
+    // ---------- phone formatting + verify
+    (function(){
+      const $phone = document.getElementById('rsPhone');
+      const $sendBtn = document.getElementById('rsSendOtpBtn');
+      const $otpWrap = document.getElementById('rsOtpWrap');
+      const $otp = document.getElementById('rsOtp');
+      const $otpVerifyBtn = document.getElementById('rsOtpVerifyBtn');
+
+      let verified = false;
+      window.rsVerified = false;
+      let expectedOtp = null;
+
+      function onlyDigits(s){ return String(s||'').replace(/\D/g,''); }
+      function formatPhone(d){
+        const x = onlyDigits(d).slice(0,11);
+        if (x.length <= 3) return x;
+        if (x.length <= 7) return `${x.slice(0,3)}-${x.slice(3)}`;
+        return `${x.slice(0,3)}-${x.slice(3,7)}-${x.slice(7)}`;
+      }
+
+      function updateSendBtn(){
+        const digits = onlyDigits($phone.value).slice(0,11);
+        const ok = digits.length === 11;
+        $sendBtn.disabled = !ok || verified;
+        if (ok && !verified) {
+          $sendBtn.className = 'shrink-0 px-4 py-3 rounded-xl text-[13px] font-black bg-blue-600 text-white active:scale-[0.98] transition';
+        } else {
+          $sendBtn.className = 'shrink-0 px-4 py-3 rounded-xl text-[13px] font-black bg-gray-200 text-gray-400';
+        }
+      }
+
+      function updateVerifyBtn(){
+        const digits = onlyDigits($otp.value).slice(0,4);
+        const ok = digits.length === 4;
+        $otpVerifyBtn.disabled = !ok || verified;
+        if (ok && !verified) {
+          $otpVerifyBtn.className = 'shrink-0 px-4 py-3 rounded-xl text-[13px] font-black bg-blue-600 text-white active:scale-[0.98] transition';
+        } else {
+          $otpVerifyBtn.className = 'shrink-0 px-4 py-3 rounded-xl text-[13px] font-black bg-gray-200 text-gray-400';
+        }
+      }
+
+      $phone.addEventListener('input', function(){
+        const caret = $phone.selectionStart || 0;
+        const before = $phone.value;
+        $phone.value = formatPhone(before);
+        // 간단 처리: 끝으로 이동(모바일 입력 안정성 우선)
+        try{ $phone.setSelectionRange($phone.value.length, $phone.value.length); } catch {}
+        updateSendBtn();
+        if (window.rsUpdatePayBtn) window.rsUpdatePayBtn();
+      });
+
+      $sendBtn.addEventListener('click', function(){
+        if ($sendBtn.disabled || verified) return;
+        expectedOtp = '1234'; // 데모용(테스트: 1234)
+        $otpWrap.classList.remove('hidden');
+        setTimeout(()=>{ try{ $otp.focus(); } catch{} }, 0);
+      });
+
+      $otp.addEventListener('input', function(){
+        $otp.value = onlyDigits($otp.value).slice(0,4);
+        updateVerifyBtn();
+        if (window.rsUpdatePayBtn) window.rsUpdatePayBtn();
+      });
+
+      $otpVerifyBtn.addEventListener('click', function(){
+        if ($otpVerifyBtn.disabled || verified) return;
+        const v = onlyDigits($otp.value).slice(0,4);
+        if (expectedOtp && v === expectedOtp) {
+          verified = true;
+          window.rsVerified = true;
+          if (window.rsUpdatePayBtn) window.rsUpdatePayBtn();
+          alert('인증되었습니다.');
+          // 버튼 비활성화
+          $sendBtn.disabled = true;
+          $otpVerifyBtn.disabled = true;
+          updateSendBtn();
+          updateVerifyBtn();
+        } else {
+          alert('인증번호를 확인해주세요');
+        }
+      });
+
+      updateSendBtn();
+      updateVerifyBtn();
+    })();
+
+    // ---------- 안내/약관/하단 결제 버튼
+    (function initPayAndTerms(){
+      const $payBtn = document.getElementById('rsPayBtn');
+      const $payGuard = document.getElementById('rsPayBtnGuard');
+
+      const $name = document.getElementById('rsName');
+      const $phone = document.getElementById('rsPhone');
+
+      const $agreeAll = document.getElementById('rsAgreeAll');
+      const termCheckboxIds = ['rsAgreeRule','rsAgreeCancel','rsAgreePrivacy','rsAgreeAge'];
+
+      const $termsModal = document.getElementById('rsTermsModal');
+      const $termsTitle = document.getElementById('rsTermsTitle');
+      const $termsBody = document.getElementById('rsTermsBody');
+      const $termsClose = document.getElementById('rsTermsClose');
+      const $termsAgreeClose = document.getElementById('rsTermsAgreeClose');
+
+      let activeTerm = null;
+
+      function onlyDigits(s){ return String(s||'').replace(/\D/g,''); }
+
+      function scrollToEl(el){
+        if (!el) return;
+        const y = el.getBoundingClientRect().top + window.scrollY - 80;
+        window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
+        try{ el.focus({preventScroll:true}); } catch {}
+      }
+
+      function getFinalAmount(){
+        // prefer numeric state if present
+        if (typeof window.rsFinalAmountNumber === 'number' && Number.isFinite(window.rsFinalAmountNumber)) return window.rsFinalAmountNumber;
+        const t = (document.getElementById('rsFinalAmount')?.textContent || '').replace(/[^\d]/g,'');
+        const n = parseInt(t || '0', 10);
+        return Number.isFinite(n) ? n : 0;
+      }
+
+      function updatePayText(){
+        const amt = getFinalAmount();
+        const txt = `${amt.toLocaleString('ko-KR')}원 결제하기`;
+        if ($payBtn) $payBtn.textContent = txt;
+      }
+
+      function isNameOk(){
+        return ($name?.value || '').trim().length >= 1;
+      }
+      function isPhoneOk(){
+        return onlyDigits($phone?.value || '').slice(0,11).length === 11;
+      }
+      function isVerifiedOk(){
+        return window.rsVerified === true;
+      }
+      function isPayMethodOk(){
+        return !!document.querySelector('input[name="rsPayMethod"]:checked');
+      }
+      function isTermsOk(){
+        // "전체 동의"가 되었거나, 개별 필수 항목이 모두 체크되면 OK
+        if ($agreeAll?.checked) return true;
+        return termCheckboxIds.every(id => document.getElementById(id)?.checked);
+      }
+
+      function setPayEnabled(enabled){
+        if (!$payBtn || !$payGuard) return;
+        if (enabled){
+          $payBtn.disabled = false;
+          $payBtn.className = 'w-full h-14 rounded-2xl bg-blue-600 text-white font-black text-[16px] active:scale-[0.98] transition';
+          $payGuard.style.display = 'none';
+        } else {
+          $payBtn.disabled = true;
+          $payBtn.className = 'w-full h-14 rounded-2xl bg-gray-200 text-gray-400 font-black text-[16px]';
+          $payGuard.style.display = 'block';
+        }
+      }
+
+      function updateAgreementAll(){
+        if (!$agreeAll) return;
+        const allChecked = termCheckboxIds.every(id => document.getElementById(id)?.checked);
+        $agreeAll.checked = allChecked;
+      }
+
+      function updatePayBtn(){
+        updatePayText();
+        const ok = isNameOk() && isPhoneOk() && isVerifiedOk() && isPayMethodOk() && isTermsOk();
+        setPayEnabled(ok);
+      }
+      window.rsUpdatePayBtn = updatePayBtn;
+
+      // pay click
+      function handlePayAttempt(){
+        // if enabled, proceed (테스트)
+        const ok = isNameOk() && isPhoneOk() && isVerifiedOk() && isPayMethodOk() && isTermsOk();
+        if (ok){
+          alert('결제 진행(테스트)');
+          return;
+        }
+
+        // scroll to first invalid
+        if (!isNameOk()) return scrollToEl($name);
+        if (!isPhoneOk()) return scrollToEl($phone);
+        if (!isVerifiedOk()){
+          const otp = document.getElementById('rsOtp');
+          return scrollToEl(otp || $phone);
+        }
+        if (!isPayMethodOk()){
+          const firstPay = document.querySelector('input[name="rsPayMethod"]');
+          return scrollToEl(firstPay);
+        }
+        if (!isTermsOk()){
+          return scrollToEl($agreeAll);
+        }
+      }
+
+      $payBtn?.addEventListener('click', handlePayAttempt);
+      $payGuard?.addEventListener('click', handlePayAttempt);
+
+      // input watchers
+      $name?.addEventListener('input', updatePayBtn);
+      $phone?.addEventListener('input', updatePayBtn);
+      document.querySelectorAll('input[name="rsPayMethod"]').forEach(r => r.addEventListener('change', updatePayBtn));
+
+      // terms checkbox logic
+      $agreeAll?.addEventListener('change', function(){
+        const v = !!$agreeAll.checked;
+        termCheckboxIds.forEach(id => {
+          const cb = document.getElementById(id);
+          if (cb) cb.checked = v;
+        });
+        updatePayBtn();
+      });
+      termCheckboxIds.forEach(id => {
+        const cb = document.getElementById(id);
+        if (!cb) return;
+        cb.addEventListener('change', function(){
+          updateAgreementAll();
+          updatePayBtn();
+        });
+      });
+
+      // terms modal open/close
+      function openTerms(termKey, title){
+        activeTerm = termKey;
+        if ($termsTitle) $termsTitle.textContent = title || '약관';
+        if ($termsBody) $termsBody.textContent = '테스트 중입니다. 임의의 약관 내용을 표시합니다.';
+        if ($termsModal){
+          $termsModal.classList.remove('hidden');
+          document.documentElement.classList.add('rs-lock');
+          document.body.classList.add('rs-lock');
+        }
+      }
+      function closeTerms(){
+        activeTerm = null;
+        if ($termsModal){
+          $termsModal.classList.add('hidden');
+          document.documentElement.classList.remove('rs-lock');
+          document.body.classList.remove('rs-lock');
+        }
+      }
+
+      document.querySelectorAll('.rsViewTerm').forEach(btn => {
+        btn.addEventListener('click', function(){
+          const term = btn.getAttribute('data-term') || '';
+          const title = btn.getAttribute('data-title') || '약관';
+          openTerms(term, title);
+        });
+      });
+
+      $termsClose?.addEventListener('click', closeTerms);
+      $termsModal?.querySelector('[data-close="1"]')?.addEventListener('click', closeTerms);
+
+      $termsAgreeClose?.addEventListener('click', function(){
+        if (activeTerm){
+          const map = {
+            rule: 'rsAgreeRule',
+            cancel: 'rsAgreeCancel',
+            privacy: 'rsAgreePrivacy',
+            age: 'rsAgreeAge'
+          };
+          const id = map[activeTerm];
+          const cb = id ? document.getElementById(id) : null;
+          if (cb) cb.checked = true;
+          updateAgreementAll();
+          updatePayBtn();
+        }
+        closeTerms();
+      });
+
+      // init (amount + current state)
+      updatePayText();
+      updateAgreementAll();
+      updatePayBtn();
+    })();
+
+  </script>
+</body>
+</html>

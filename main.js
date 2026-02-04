@@ -30,6 +30,8 @@
     ],
     minGuests: 2,
     maxGuests: 4,
+    checkIn: "15:00",
+    checkOut: "11:00",
     description:
       "태안 엘플레이트풀빌라의 시그니처 객실인 D룸은 넓은 개별 온수풀과 프라이빗한 바베큐 공간을 제공합니다.\n\n최고급 킹 사이즈 매트리스와 구스 침구로 편안한 휴식을 보장하며, 통창을 통해 들어오는 채광이 아름다운 객실입니다."
   };
@@ -99,6 +101,9 @@
 
   let selectedPayment = "card";
 
+  // room detail view
+  let lastMainScrollY = 0;
+
   // booking modal (temp range selection)
   let bookingTempStart = startDate;
   let bookingTempEnd = endDate;
@@ -113,6 +118,13 @@
     return x;
   }
 
+  // 메인 화면 요약 표기용 (예: 02.03)
+  function formatDate(d) {
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `${mm}.${dd}`;
+  }
+
   function formatTime(totalSeconds) {
     const h = Math.floor(totalSeconds / 3600);
     const m = Math.floor((totalSeconds % 3600) / 60);
@@ -120,10 +132,28 @@
     return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
   }
 
-  function formatDate(d) {
+  function fillRoomModal() {
+    const room = getActiveRoom();
+    if (!room) return;
+
+    $("#roomDetailName").text(`객실 ${room.name}`);
+    $("#roomDetailGuests").text(`기준 ${room.minGuests}인 / 최대 ${room.maxGuests}인`);
+    const ci = room.checkIn || "15:00";
+    const co = room.checkOut || "11:00";
+    $("#roomDetailTimes").text(`체크인 ${ci} / 체크아웃 ${co}`);
+    $("#roomDetailDesc").text(room.description || "");
+
+    // 사진 영역: 객실사진과 동일한 모자이크
+    renderMosaic($("#roomDetailMosaic"), `room_${activeRoomIndex}`, room.images);
+
+    refreshIcons();
+  }
+
+  function formatISODate(d) {
+    const y = d.getFullYear();
     const mm = String(d.getMonth() + 1).padStart(2, "0");
     const dd = String(d.getDate()).padStart(2, "0");
-    return `${mm}.${dd}`;
+    return `${y}-${mm}-${dd}`;
   }
 
   function formatFullDateKR(d) {
@@ -145,6 +175,61 @@
     const parts = String(iso).split("-").map((x) => parseInt(x, 10));
     if (parts.length !== 3 || parts.some((n) => Number.isNaN(n))) return normalizeDate(new Date());
     return normalizeDate(new Date(parts[0], parts[1] - 1, parts[2]));
+  }
+
+  // 예약페이지 이동/복귀에 사용할 메인 상태 저장/복원
+  function saveMainReturnState(scrollYOverride) {
+    try {
+      const y = Number.isFinite(scrollYOverride) ? scrollYOverride : window.scrollY || 0;
+      sessionStorage.setItem("mainScrollY", String(y));
+      sessionStorage.setItem(
+        "mainState",
+        JSON.stringify({
+          start: toISODate(startDate),
+          end: toISODate(endDate),
+          adults,
+          children,
+          infants,
+          activeRoomIndex
+        })
+      );
+    } catch {}
+  }
+
+  function restoreMainReturnStateIfRequested() {
+    const params = new URLSearchParams(location.search);
+    if (params.get("restore") !== "1") return false;
+
+    let st = null;
+    try {
+      st = JSON.parse(sessionStorage.getItem("mainState") || "null");
+    } catch {
+      st = null;
+    }
+    if (!st) return true; // restore 요청은 있었으나 상태 없음
+
+    if (st.start) startDate = fromISODate(st.start);
+    if (st.end) endDate = fromISODate(st.end);
+    adults = Math.max(1, parseInt(st.adults ?? adults, 10) || adults);
+    children = Math.max(0, parseInt(st.children ?? children, 10) || children);
+    infants = Math.max(0, parseInt(st.infants ?? infants, 10) || infants);
+    if (Number.isFinite(parseInt(st.activeRoomIndex, 10))) {
+      activeRoomIndex = Math.max(0, Math.min(parseInt(st.activeRoomIndex, 10), rooms.length - 1));
+    }
+
+    // booking modal temp도 동기화
+    bookingTempStart = startDate;
+    bookingTempEnd = endDate;
+    bookingViewMonth = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+
+    // restore 파라미터 제거(재로딩 시 반복 방지)
+    try {
+      params.delete("restore");
+      const next = params.toString();
+      history.replaceState({}, "", `${location.pathname}${next ? "?" + next : ""}${location.hash || ""}`);
+    } catch {}
+
+    return true;
   }
 
   function nights() {
@@ -181,21 +266,34 @@
   // -----------------------------
   function renderMosaic($root, galleryKey, images) {
     const totalCount = images.length;
+    if (!totalCount) {
+      $root.empty();
+      return;
+    }
+
+    // 갤러리 저장(동적으로 생성되는 key도 열람 가능하게)
+    galleries[galleryKey] = images;
+
     const safe = images.slice(0, 5);
+    const pick = (i) => safe[i] || safe[safe.length - 1] || images[images.length - 1];
 
     const imgTag = (src, idx) =>
       `<img data-gallery="${galleryKey}" data-index="${idx}" src="${src}" alt="${galleryKey}-${idx}" class="w-full h-full object-cover hover:opacity-80 transition-opacity" />`;
 
-    const extra = totalCount > 5 ? `<div class="absolute inset-0 bg-black/50 flex items-center justify-center text-white text-xs font-bold backdrop-blur-[1px]">+${totalCount - 5}</div>` : "";
+    const extraCount = totalCount - 5;
+    const extra =
+      extraCount > 0
+        ? `<button type="button" class="mosaic-more absolute inset-0 bg-black/50 flex items-center justify-center text-white text-xs font-bold backdrop-blur-[1px]" data-gallery="${galleryKey}" data-index="4" aria-label="사진 더보기">+${extraCount}</button>`
+        : "";
 
     const html = `
       <div class="relative w-full aspect-[4/3] flex gap-1 bg-white overflow-hidden cursor-pointer group">
-        <div class="w-1/2 h-full">${imgTag(safe[0], 0)}</div>
+        <div class="w-1/2 h-full">${imgTag(pick(0), 0)}</div>
         <div class="w-1/2 h-full grid grid-cols-2 grid-rows-2 gap-1">
-          <div>${imgTag(safe[1], 1)}</div>
-          <div>${imgTag(safe[2], 2)}</div>
-          <div>${imgTag(safe[3], 3)}</div>
-          <div class="relative">${imgTag(safe[4], 4)}${extra}</div>
+          <div>${imgTag(pick(1), 1)}</div>
+          <div>${imgTag(pick(2), 2)}</div>
+          <div>${imgTag(pick(3), 3)}</div>
+          <div class="relative">${imgTag(pick(4), 4)}${extra}</div>
         </div>
       </div>
     `;
@@ -280,15 +378,12 @@
     $all.empty();
     attractions.forEach((it) => {
       $all.append(`
-        <div class="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
-          <div class="flex items-center gap-2 truncate">
+        <div class="flex items-center justify-between gap-3 py-3 border-b border-gray-100 last:border-0">
+          <div class="flex items-center gap-2 min-w-0">
             <div class="p-2 bg-blue-50 rounded-lg text-blue-600 shrink-0"><i data-lucide="map-pin" style="width:14px;height:14px"></i></div>
-            <div class="truncate">
-              <div class="text-[14px] font-bold text-gray-900 truncate">${it.name}</div>
-              <div class="text-[12px] text-gray-500 font-medium">숙소 기준 거리</div>
-            </div>
+            <div class="text-[14px] font-bold text-gray-900 truncate">${it.name}</div>
           </div>
-          <div class="text-[12px] font-black text-blue-600 bg-blue-50 px-3 py-1 rounded-full">${it.distance}</div>
+          <div class="inline-flex items-center text-[16px] font-black text-blue-600 bg-blue-50 px-3 py-1.5 rounded-full shrink-0 whitespace-nowrap">${it.distance}</div>
         </div>
       `);
     });
@@ -352,6 +447,7 @@
   function renderState() {
     // timer
     $("#promoTimer").text(formatTime(secondsRemaining));
+    $("#promoTimer2").text(formatTime(secondsRemaining));
 
     // schedule button
     const nightsText = nights();
@@ -388,6 +484,10 @@
   // -----------------------------
   function openModal(sel) {
     $(sel).addClass("is-open");
+    // Ensure room detail is populated even when opened via history/hash
+    if (sel === "#roomModal") {
+      try { fillRoomModal(); } catch (e) {}
+    }
     updateChrome();
   }
 
@@ -445,7 +545,7 @@
     imgs.forEach((src, i) => {
       const isActive = i === galleryActiveIndex;
       $thumbs.append(`
-        <button class="shrink-0 rounded-xl overflow-hidden border ${isActive ? "border-blue-600" : "border-gray-200"}" data-idx="${i}" aria-label="thumb ${i + 1}" ${isActive ? "aria-current='true'" : ""}>
+        <button class="gallery-thumb ${isActive ? "is-active" : ""}" data-idx="${i}" aria-label="thumb ${i + 1}" ${isActive ? "aria-current='true'" : ""}>
           <img src="${src}" alt="thumb-${i}" class="gallery-thumb-img" />
         </button>
       `);
@@ -565,17 +665,25 @@
   // Timer (24h)
   // -----------------------------
   function initTimer() {
-    const key = "villa_promo_start_time";
-    let startTime = localStorage.getItem(key);
-    if (!startTime) {
-      startTime = String(Date.now());
-      localStorage.setItem(key, startTime);
+    // 파일/모바일 브라우저(특히 삼성 인터넷)에서 안정적으로 동작하도록 endTime 기준으로 계산
+    const key = "villa_promo_end_time";
+    let endTime = 0;
+    try {
+      endTime = parseInt(localStorage.getItem(key) || "0", 10);
+    } catch {
+      endTime = 0;
+    }
+
+    if (!endTime || Number.isNaN(endTime) || endTime <= Date.now()) {
+      endTime = Date.now() + 24 * 60 * 60 * 1000;
+      try {
+        localStorage.setItem(key, String(endTime));
+      } catch {}
     }
 
     function tick() {
-      const now = Date.now();
-      const elapsed = Math.floor((now - parseInt(startTime, 10)) / 1000);
-      secondsRemaining = Math.max(0, 24 * 60 * 60 - elapsed);
+      const diff = Math.max(0, endTime - Date.now());
+      secondsRemaining = Math.floor(diff / 1000);
       renderState();
     }
 
@@ -662,7 +770,7 @@
     });
 
     // open gallery from mosaic images
-    $(document).on("click", "img[data-gallery][data-index]", function (e) {
+    $(document).on("click", "[data-gallery][data-index]", function (e) {
       e.preventDefault();
       const galleryKey = $(this).attr("data-gallery");
       const index = parseInt($(this).attr("data-index"), 10);
@@ -733,23 +841,93 @@
     $(document).on("click", ".js-open-room-info", function () {
       const idx = parseInt($(this).data("room"), 10);
       setActiveRoom(isNaN(idx) ? 0 : idx);
+
+      // 메인 스크롤 위치 보존
+      lastMainScrollY = window.scrollY || 0;
+      try {
+        sessionStorage.setItem("mainScrollY", String(lastMainScrollY));
+      } catch {}
+
       fillRoomModal();
       openModal("#roomModal");
+
+      // 뒤로가기(브라우저 back)로 메인 복귀 가능하도록 히스토리 상태 추가
+      try {
+        if (location.hash !== "#room") {
+          history.pushState({ view: "room", room: activeRoomIndex }, "", "#room");
+        }
+      } catch {}
     });
 
     $(document).on("click", ".js-open-reservation", function () {
       const idx = parseInt($(this).data("room"), 10);
       setActiveRoom(isNaN(idx) ? 0 : idx);
-      fillReservationModal();
-      openModal("#reservationModal");
+      // 예약하기: 모달이 아니라 예약페이지로 이동(일정/인원 이어받기)
+      const room = getActiveRoom();
+      if (!room) return;
+
+      // 메인 상태(일정/인원/스크롤) 보존: 예약페이지 뒤로가기 시 그대로 복원
+      saveMainReturnState();
+
+      const params = new URLSearchParams({
+        room: String(room.name),
+        checkin: formatISODate(startDate),
+        checkout: formatISODate(endDate),
+        adults: String(adults),
+        children: String(children),
+        infants: String(infants),
+        minGuests: String(room.minGuests || 0),
+        maxGuests: String(room.maxGuests || 0),
+        checkinTime: String(room.checkIn || "15:00"),
+        checkoutTime: String(room.checkOut || "11:00")
+      });
+      window.location.href = `reservation.html?${params.toString()}`;
     });
 
-    // reserve (room modal)
+    // reserve (room detail view): 예약페이지로 이동(일정/인원 이어받기)
     $("#roomReserve").on("click", function () {
-      closeModal("#roomModal");
-      fillReservationModal();
-      openModal("#reservationModal");
+      const room = getActiveRoom();
+      if (!room) return;
+
+      // 메인 상태(일정/인원/스크롤) 보존: 예약페이지 뒤로가기 시 그대로 복원
+      saveMainReturnState(lastMainScrollY || window.scrollY || 0);
+
+      const params = new URLSearchParams({
+        room: String(room.name),
+        checkin: formatISODate(startDate),
+        checkout: formatISODate(endDate),
+        adults: String(adults),
+        children: String(children),
+        infants: String(infants),
+        minGuests: String(room.minGuests || 0),
+        maxGuests: String(room.maxGuests || 0),
+        checkinTime: String(room.checkIn || "15:00"),
+        checkoutTime: String(room.checkOut || "11:00")
+      });
+      window.location.href = `reservation.html?${params.toString()}`;
     });
+
+    // room detail back (메인 복귀 + 스크롤 유지)
+    $("#roomBack").on("click", function () {
+      // 히스토리로 열렸다면 back으로 복귀
+      if (location.hash === "#room") {
+        history.back();
+        return;
+      }
+      closeModal("#roomModal");
+      const y = lastMainScrollY || parseInt(sessionStorage.getItem("mainScrollY") || "0", 10);
+      setTimeout(() => window.scrollTo(0, y), 0);
+    });
+
+    // 브라우저 뒤로가기 시 room detail 닫기
+    window.addEventListener("popstate", function () {
+      if (location.hash !== "#room" && $("#roomModal").hasClass("is-open")) {
+        closeModal("#roomModal");
+        const y = lastMainScrollY || parseInt(sessionStorage.getItem("mainScrollY") || "0", 10);
+        setTimeout(() => window.scrollTo(0, y), 0);
+      }
+    });
+
 
     // payment selection
     $(document).on("click", ".js-pay", function () {
@@ -778,35 +956,20 @@
     });
   }
 
-  
-  function fillRoomModal() {
-    const room = getActiveRoom();
-    if (!room) return;
-    $("#roomModalTitle").text(`${room.name} 객실`);
-    $("#roomModalGuests").text(`기준 ${room.minGuests}인 / 최대 ${room.maxGuests}인`);
-    $("#roomModalDesc").text(room.description);
-    renderMosaic($("#roomModalMosaic"), `room_modal_${activeRoomIndex}`, room.images);
-    refreshIcons();
-  }
-
-  function fillReservationModal() {
-    const room = getActiveRoom();
-    if (!room) return;
-    $("#rvRoomName").text(`객실 ${room.name}`);
-  }
-
 // -----------------------------
   // Init
   // -----------------------------
   $(function () {
+    // 예약페이지에서 뒤로가기 복귀(일정/인원/스크롤 유지)
+    const didRestore = restoreMainReturnStateIfRequested();
+
     // initial render
     renderMosaic($("#mainMosaic"), "main", mainImages);
     renderFacilities();
     renderAttractions();
     renderRooms();
-    // fill room modal / reservation modal (active room 기반)
+    // 객실 상세보기(모달) 기본 데이터 세팅
     fillRoomModal();
-    fillReservationModal();
 
     // icons
     refreshIcons();
@@ -823,5 +986,13 @@
 
     // timer
     initTimer();
+
+    // restore scroll if requested
+    if (didRestore) {
+      try {
+        const y = parseInt(sessionStorage.getItem("mainScrollY") || "0", 10);
+        if (Number.isFinite(y) && y >= 0) setTimeout(() => window.scrollTo(0, y), 0);
+      } catch {}
+    }
   });
 })(jQuery);

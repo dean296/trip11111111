@@ -27,8 +27,7 @@
         <div class="flex items-center gap-2">
           <i data-lucide="shield-check" class="text-blue-200" style="width:20px;height:20px"></i>
           <div class="flex flex-col">
-            <span class="text-[10px] font-bold text-blue-100 leading-none mb-0.5">단 24시간! 최저가 보장제</span>
-            <span class="text-xs font-black tracking-tighter">예약 유효시간 남음</span>
+            <span class="text-[16px] font-black tracking-tight leading-tight">단 24시간! 최저가를 보장합니다.</span>
           </div>
         </div>
         <div class="flex items-center gap-2 bg-black/30 px-3 py-1.5 rounded-xl backdrop-blur-md border border-white/20">
@@ -100,7 +99,7 @@
             <div id="attractionsAll" class="flex flex-col gap-3"></div>
           </div>
           <div class="p-4 bg-white border-t border-gray-100 safe-bottom">
-            <button class="js-close-modal w-full bg-blue-600 text-white font-black py-4 rounded-2xl shadow-lg active:scale-[0.98] transition-all" data-target="#attractionsModal">확인</button>
+            <button class="js-close-modal w-full bg-blue-600 text-white font-black py-4 rounded-2xl shadow-lg active:scale-[0.98] transition-all" data-target="#attractionsModal">닫기</button>
           </div>
         </div>
       </div>
@@ -125,7 +124,7 @@
               </button>
             </div>
           </div>
-          <div class="px-4 pb-5">
+          <div class="px-4 pb-5 gallery-thumbs-wrap">
             <div id="galleryThumbs" class="flex gap-2 overflow-x-auto hide-scrollbar"></div>
           </div>
         </div>
@@ -236,32 +235,48 @@
       </div>
 
       <!-- Room Info Modal -->
-      <div id="roomModal" class="modal-overlay fixed inset-y-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] z-[900] items-end justify-center bg-black/60 modal-fade" role="dialog" aria-modal="true">
-        <div class="bg-white w-full h-[92vh] rounded-t-3xl flex flex-col shadow-2xl overflow-hidden modal-sheet">
-          <div class="p-5 border-b border-gray-100 flex items-center justify-between">
-            <div>
-              <div class="text-[11px] font-bold text-gray-400">객실 상세</div>
-              <div class="text-lg font-black text-gray-900">D 객실</div>
-            </div>
-            <button class="js-close-modal p-2 rounded-xl bg-gray-100 active:scale-95" data-target="#roomModal" aria-label="닫기">
-              <i data-lucide="x" style="width:18px;height:18px"></i>
+      <div id="roomModal" class="modal-overlay fixed inset-y-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] z-[900] bg-white modal-fade" role="dialog" aria-modal="true">
+        <div class="w-full h-full flex flex-col">
+          <!-- Title bar -->
+          <div class="h-14 px-4 flex items-center justify-between border-b border-gray-100">
+            <button id="roomBack" class="p-2 -ml-2 rounded-xl active:scale-95" aria-label="뒤로가기">
+              <i data-lucide="chevron-left" style="width:22px;height:22px" class="text-gray-700"></i>
             </button>
+            <div class="font-black text-gray-900">객실 상세보기</div>
+            <div class="w-10"></div>
           </div>
-          <div class="overflow-auto hide-scrollbar">
+
+          <!-- Content -->
+          <div class="flex-1 overflow-auto hide-scrollbar">
+            <div id="roomDetailMosaic" class="w-full"></div>
+
             <div class="p-5">
-              <div id="roomModalGallery" class="rounded-2xl overflow-hidden border border-gray-100 shadow-sm"></div>
-              <div class="mt-4 flex items-center text-gray-500 text-sm font-medium">
-                <i data-lucide="users" style="width:16px;height:16px" class="mr-2 text-blue-600"></i>
-                <span>기준 <span id="roomMinGuests" class="font-black text-gray-800">2</span>인 / 최대 <span id="roomMaxGuests" class="font-black text-gray-800">4</span>인</span>
+              <div id="roomDetailName" class="text-3xl font-black text-gray-900 tracking-tight">객실</div>
+
+              <div class="mt-3 flex items-center gap-3 bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                <div class="flex items-center text-gray-600 text-sm font-bold">
+                  <i data-lucide="users" style="width:18px;height:18px" class="text-blue-600 mr-2"></i>
+                  <span id="roomDetailGuests"></span>
+                </div>
+                <div class="w-px h-4 bg-gray-200"></div>
+                <div class="flex items-center text-gray-600 text-sm font-bold">
+                  <i data-lucide="calendar" style="width:18px;height:18px" class="text-blue-600 mr-2"></i>
+                  <span id="roomDetailTimes"></span>
+                </div>
               </div>
-              <div class="mt-3 bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                <h4 class="text-sm font-black text-gray-900 mb-2">객실 소개</h4>
-                <p id="roomDesc" class="text-[14.5px] text-gray-600 leading-relaxed font-medium whitespace-pre-line"></p>
+
+              <h4 class="mt-7 text-xl font-black text-gray-900 flex items-center gap-2">
+                <span class="w-1 h-5 bg-blue-600 rounded-full"></span>객실 상세 설명
+              </h4>
+              <div class="mt-4 bg-gray-50 p-5 rounded-2xl border border-gray-100">
+                <p id="roomDetailDesc" class="text-[14.5px] text-gray-600 leading-relaxed font-medium whitespace-pre-line"></p>
               </div>
             </div>
           </div>
+
+          <!-- CTA -->
           <div class="p-4 bg-white border-t border-gray-100 safe-bottom">
-            <button id="roomReserve" class="w-full bg-blue-600 text-white font-black py-4 rounded-2xl shadow-lg active:scale-[0.98] transition-all text-lg">이 객실로 예약하기</button>
+            <button id="roomReserve" class="w-full bg-blue-600 text-white font-black py-4 rounded-2xl shadow-lg active:scale-[0.98] transition-all text-lg">이 객실 예약하기</button>
           </div>
         </div>
       </div>
