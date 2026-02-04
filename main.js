@@ -115,6 +115,9 @@
   let bookingTempStart = startDate;
   let bookingTempEnd = endDate;
   let bookingViewMonth = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+  let bookingTempAdults = adults;
+  let bookingTempChildren = children;
+  let bookingTempInfants = infants;
 
   // -----------------------------
   // Utils
@@ -217,7 +220,7 @@
 
     if (st.start) startDate = fromISODate(st.start);
     if (st.end) endDate = fromISODate(st.end);
-    adults = Math.max(1, parseInt(st.adults ?? adults, 10) || adults);
+    adults = Math.max(0, parseInt(st.adults ?? adults, 10) || adults);
     children = Math.max(0, parseInt(st.children ?? children, 10) || children);
     infants = Math.max(0, parseInt(st.infants ?? infants, 10) || infants);
     if (Number.isFinite(parseInt(st.activeRoomIndex, 10))) {
@@ -228,6 +231,9 @@
     bookingTempStart = startDate;
     bookingTempEnd = endDate;
     bookingViewMonth = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+    bookingTempAdults = adults;
+    bookingTempChildren = children;
+    bookingTempInfants = infants;
 
     // restore 파라미터 제거(재로딩 시 반복 방지)
     try {
@@ -245,6 +251,36 @@
 
   function totalGuests() {
     return adults + children + infants;
+  }
+
+  function bookingTempTotalGuests() {
+    return bookingTempAdults + bookingTempChildren + bookingTempInfants;
+  }
+
+  function bookingSelectionValid() {
+    return !!(bookingTempStart && bookingTempEnd && bookingTempTotalGuests() >= 1);
+  }
+
+  function updateBookingApplyButton() {
+    const enabled = bookingSelectionValid();
+    const $btn = $("#bookingApply");
+    if (!$btn.length) return;
+
+    $btn.attr("data-enabled", enabled ? "1" : "0");
+    if (enabled) {
+      $btn.removeClass("bg-gray-200 text-gray-400 cursor-not-allowed")
+          .addClass("bg-blue-600 text-white");
+    } else {
+      $btn.removeClass("bg-blue-600 text-white")
+          .addClass("bg-gray-200 text-gray-400 cursor-not-allowed");
+    }
+  }
+
+  function scrollBookingTo($target) {
+    const $sc = $("#bookingModal .modal-sheet").find(".hide-scrollbar").first();
+    if (!$sc.length || !$target || !$target.length) return;
+    const top = $target.position().top + $sc.scrollTop() - 12;
+    $sc.stop(true).animate({ scrollTop: top }, 250);
   }
 
   function anyModalOpen() {
@@ -461,9 +497,17 @@
     // 메인 화면(객실 선택 > 일정 및 인원) 요약 텍스트
     $("#scheduleSummary").text(`${formatDate(startDate)} ~ ${formatDate(endDate)} (${nightsText}박) / ${totalGuests()}명`);
 
-    $("#countAdults").text(adults);
-    $("#countChildren").text(children);
-    $("#countInfants").text(infants);
+    // booking modal이 열려있을 때는 임시 인원값을 표시(타이머 리렌더로 값이 덮이는 현상 방지)
+    if ($("#bookingModal").hasClass("is-open")) {
+      $("#countAdults").text(bookingTempAdults);
+      $("#countChildren").text(bookingTempChildren);
+      $("#countInfants").text(bookingTempInfants);
+      updateBookingApplyButton();
+    } else {
+      $("#countAdults").text(adults);
+      $("#countChildren").text(children);
+      $("#countInfants").text(infants);
+    }
     // booking modal: 날짜는 임시 선택(bookingTempStart/End)을 사용하므로 여기서 덮어쓰지 않음
 
     // reservation view summary
@@ -666,6 +710,7 @@
     $("#bookingCheckInText").text(bookingTempStart ? formatFullDateKR(bookingTempStart) : "-");
     $("#bookingCheckOutText").text(bookingTempEnd ? formatFullDateKR(bookingTempEnd) : "-");
     renderBookingCalendar();
+    updateBookingApplyButton();
   }
 
   // -----------------------------
@@ -714,10 +759,25 @@
   function bindEvents() {
     // open booking modal
     $("#openBooking").on("click", function () {
-      bookingTempStart = startDate;
-      bookingTempEnd = endDate;
-      bookingViewMonth = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+      // 모바일에서 '방문인원'이 아래에 있어도 누락 없이 선택하도록:
+      // 진입 시 날짜 미선택 + 방문인원 0으로 초기화하고, 조건 충족 시에만 '선택 완료' 활성화
+      bookingTempStart = null;
+      bookingTempEnd = null;
+
+      bookingTempAdults = 0;
+      bookingTempChildren = 0;
+      bookingTempInfants = 0;
+
+      const today0 = normalizeDate(new Date());
+      bookingViewMonth = new Date(today0.getFullYear(), today0.getMonth(), 1);
+
       renderBookingModal();
+      // 인원 카운트/버튼 상태까지 반영
+      $("#countAdults").text(bookingTempAdults);
+      $("#countChildren").text(bookingTempChildren);
+      $("#countInfants").text(bookingTempInfants);
+      updateBookingApplyButton();
+
       openModal("#bookingModal");
     });
 
@@ -750,11 +810,26 @@
       }
     });
 
-    // counter
+    // counter (booking modal 내 임시 인원 선택)
     $(document).on("click", ".js-counter", function () {
       const field = $(this).data("field");
       const delta = parseInt($(this).data("delta"), 10);
-      if (field === "adults") adults = Math.max(1, adults + delta);
+
+      if ($("#bookingModal").hasClass("is-open")) {
+        if (field === "adults") bookingTempAdults = Math.max(0, bookingTempAdults + delta);
+        if (field === "children") bookingTempChildren = Math.max(0, bookingTempChildren + delta);
+        if (field === "infants") bookingTempInfants = Math.max(0, bookingTempInfants + delta);
+
+        // 아이콘(마이너스 회색 등)은 그대로 두고 숫자/버튼 상태만 갱신
+        $("#countAdults").text(bookingTempAdults);
+        $("#countChildren").text(bookingTempChildren);
+        $("#countInfants").text(bookingTempInfants);
+        updateBookingApplyButton();
+        return;
+      }
+
+      // (예비) 다른 화면에서 사용 시
+      if (field === "adults") adults = Math.max(0, adults + delta);
       if (field === "children") children = Math.max(0, children + delta);
       if (field === "infants") infants = Math.max(0, infants + delta);
       renderState();
@@ -762,16 +837,34 @@
 
     // apply booking
     $("#bookingApply").on("click", function () {
-      if (!bookingTempStart || !bookingTempEnd) {
-        toast("체크인/체크아웃을 선택해주세요.");
+      // 비활성화 상태에서도 클릭 시 미선택 항목으로 스크롤
+      const hasDates = !!(bookingTempStart && bookingTempEnd);
+      const hasGuests = bookingTempTotalGuests() >= 1;
+
+      if (!hasDates) {
+        updateBookingApplyButton();
+        scrollBookingTo($("#bookingCalendarGrid"));
         return;
       }
       if (bookingTempEnd.getTime() <= bookingTempStart.getTime()) {
-        toast("체크아웃은 체크인 이후 날짜여야 합니다.");
+        // 날짜 순서 오류는 달력으로 이동
+        updateBookingApplyButton();
+        scrollBookingTo($("#bookingCalendarGrid"));
         return;
       }
+      if (!hasGuests) {
+        updateBookingApplyButton();
+        scrollBookingTo($("#bookingModal .mt-6.pt-5.border-t").first());
+        return;
+      }
+
       startDate = bookingTempStart;
       endDate = bookingTempEnd;
+
+      adults = bookingTempAdults;
+      children = bookingTempChildren;
+      infants = bookingTempInfants;
+
       closeModal("#bookingModal");
       renderState();
     });
