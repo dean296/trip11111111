@@ -146,11 +146,11 @@
     const room = getActiveRoom();
     if (!room) return;
 
-    $("#roomDetailName").text(`객실 ${room.name}`);
+    $("#roomDetailName").text(`${room.name}`);
     $("#roomDetailGuests").text(`기준 ${room.minGuests}인 / 최대 ${room.maxGuests}인`);
     const ci = room.checkIn || "15:00";
     const co = room.checkOut || "11:00";
-    $("#roomDetailTimes").text(`체크인 ${ci} / 체크아웃 ${co}`);
+    $("#roomDetailTimes").text(`체크인 ${ci} ~ 체크아웃 ${co}`);
     $("#roomDetailDesc").text(room.description || "");
 
     // 사진 영역: 객실사진과 동일한 모자이크
