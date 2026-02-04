@@ -30,14 +30,14 @@ img{image-rendering:auto;}
 #galleryStage{
   height: calc(100vh - 190px); /* top bar + thumbs 영역 제외 */
   padding: 0;
+}  background: #000;
 }
 
 .gallery-image{
   max-width: 100%;
-  max-height: 100%;
   width: 100%;
-  height: auto;
-  object-fit: contain;
+  height: 100%;
+  object-fit: cover;
   border-radius: 0;
 }
 
@@ -64,6 +64,9 @@ img{image-rendering:auto;}
 
 .gallery-nav.left{left: 14px;}
 .gallery-nav.right{right: 14px;}
+
+/* Force lucide chevrons to be white inside gallery nav */
+.gallery-nav svg{stroke:#fff;}
 
 /* Larger thumbnails */
 .gallery-thumb-img{
@@ -109,4 +112,10 @@ img{image-rendering:auto;}
 .booking-cal-day.in-range{
   background: #bfdbfe; /* light sky blue */
   color: #1d4ed8;
+}
+
+.booking-cal-day.is-disabled{
+  color:#9ca3af; /* gray-400 */
+  opacity:0.6;
+  pointer-events:none;
 }

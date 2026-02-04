@@ -34,6 +34,18 @@
       "태안 엘플레이트풀빌라의 시그니처 객실인 D룸은 넓은 개별 온수풀과 프라이빗한 바베큐 공간을 제공합니다.\n\n최고급 킹 사이즈 매트리스와 구스 침구로 편안한 휴식을 보장하며, 통창을 통해 들어오는 채광이 아름다운 객실입니다."
   };
 
+  // 객실 목록(라이브에서는 선택 날짜/인원에 따라 N개로 늘어날 수 있음)
+  const rooms = [roomD];
+  let activeRoomIndex = 0;
+
+  function getActiveRoom() {
+    return rooms[Math.max(0, Math.min(activeRoomIndex, rooms.length - 1))];
+  }
+
+  function setActiveRoom(idx) {
+    activeRoomIndex = idx;
+  }
+
   const allFacilities = [
     { icon: "layers", name: "복층" },
     { icon: "home", name: "독채" },
@@ -197,6 +209,12 @@
   }
 
   function renderFacilities() {
+    // 편의시설 0개면 섹션 자체 미노출
+    if (allFacilities.length === 0) {
+      $("#facilitiesSection").hide();
+      return;
+    }
+    $("#facilitiesSection").show();
     const first4 = allFacilities.slice(0, 4);
     // 메인 화면 미리보기(최대 4개)
     // HTML: <div id="facilitiesPreview" ...>
@@ -236,10 +254,17 @@
   }
 
   function renderAttractions() {
+    // 주변 관광지 0개면 섹션 자체 미노출
+    if (!attractions || attractions.length === 0) {
+      $("#attractionsSection").hide();
+      return;
+    }
+    $("#attractionsSection").show();
+
     const $preview = $("#attractionsPreview");
     $preview.empty();
 
-    attractions.slice(0, 3).forEach((it) => {
+    attractions.slice(0, 4).forEach((it) => {
       $preview.append(`
         <div class="flex items-center justify-between py-1.5 border-b border-gray-50 last:border-0">
           <div class="flex items-center gap-2.5 truncate">
@@ -269,14 +294,59 @@
     });
 
     refreshIcons();
+
+    // 버튼: 4개 이하면 미표시, 5개 이상이면 표시 + 카운트 업데이트
+    $("#attractionCount").text(attractions.length);
+    if (attractions.length <= 4) {
+      $("#openAttractions").hide();
+    } else {
+      $("#openAttractions").show();
+    }
+  }
+
+  function renderRooms() {
+    const $container = $("#roomsContainer");
+    if (!$container.length) return;
+
+    $container.empty();
+
+    rooms.forEach((room, idx) => {
+      const card = $(`
+        <div class="border border-gray-100 rounded-2xl overflow-hidden shadow-lg bg-white">
+          <div class="js-room-mosaic"></div>
+          <div class="p-5 pt-4">
+            <div class="flex justify-between items-center mb-1">
+              <h3 class="text-2xl font-black text-gray-900 tracking-tight">${room.name}</h3>
+              <button class="js-open-room-info flex items-center text-gray-400 text-[11px] font-bold hover:text-blue-600" data-room="${idx}">상세보기 <i class="ml-0.5" data-lucide="chevron-right" style="width:12px;height:12px"></i></button>
+            </div>
+            <div class="flex items-center text-gray-500 text-xs mb-1 font-medium"><i class="mr-1 text-blue-500" data-lucide="users" style="width:14px;height:14px"></i><span>기준 ${room.minGuests}인 / 최대 ${room.maxGuests}인</span></div>
+            <div class="text-[11px] text-gray-400 mb-2 font-medium">체크인 15:00 ~ 체크아웃 11:00</div>
+            <div class="mb-2"><span class="bg-blue-50 text-blue-600 text-[10px] font-extrabold px-2 py-0.5 rounded border border-blue-100 inline-block shadow-sm">타사이트 대비 최저가보장</span></div>
+            <div class="flex flex-col items-end -mt-8">
+              <div class="flex items-center gap-1.5"><span class="text-red-500 font-extrabold text-xl">73%</span><span class="text-gray-300 line-through text-xs font-medium">550,000</span></div>
+              <div class="flex flex-col items-end -mt-0.5">
+                <span class="text-blue-600 text-[11px] font-black">최대할인가</span>
+                <div class="flex items-center"><span class="text-3xl font-black text-gray-900 tracking-tighter">145,000원</span></div>
+              </div>
+            </div>
+            <button class="js-open-reservation w-full bg-blue-600 text-white font-black py-4 rounded-xl mt-5 shadow-lg active:bg-blue-700 active:scale-98 transition-all text-lg" data-room="${idx}">예약하기</button>
+          </div>
+        </div>
+      `);
+
+      $container.append(card);
+
+      // mosaic
+      const key = `room_${idx}`;
+      renderMosaic(card.find(".js-room-mosaic"), key, room.images);
+    });
+
+    refreshIcons();
   }
 
   function renderRoomCard() {
-    renderMosaic($("#roomMosaic"), "roomD", roomD.images);
-
-    $("#roomName").text(roomD.name);
-    $("#roomGuests").text(`기준 ${roomD.minGuests}인 / 최대 ${roomD.maxGuests}인`);
-    $("#roomDesc").text(roomD.description.split("\n\n")[0]);
+    // backward compatibility (no-op)
+    renderRooms();
   }
 
   function renderState() {
@@ -429,7 +499,7 @@
     const startWeekDay = first.getDay(); // 0: Sun
     const daysInMonth = new Date(y, m + 1, 0).getDate();
 
-    const totalCells = Math.ceil((startWeekDay + daysInMonth) / 7) * 7;
+    const totalCells = 42; // 6주 고정(달력 높이 변동 방지)
     const $grid = $("#bookingCalendarGrid");
     $grid.empty();
 
@@ -443,7 +513,11 @@
       const d = normalizeDate(new Date(y, m, dayNum));
       const iso = toISODate(d);
 
+      const today0 = normalizeDate(new Date());
+      const isPast = d.getTime() < today0.getTime();
+
       const cls = ["booking-cal-day"];
+      if (isPast) cls.push("is-disabled");
 
       if (bookingTempStart && bookingTempEnd) {
         if (isSameDay(d, bookingTempStart)) cls.push("range-start");
@@ -454,7 +528,7 @@
       }
 
       $grid.append(
-        `<button type="button" class="${cls.join(" ")}" data-date="${iso}" aria-label="${iso}">${dayNum}</button>`
+        `<button type="button" class="${cls.join(" ")}" data-date="${iso}" aria-label="${iso}" ${cls.includes("is-disabled") ? "disabled" : ""}>${dayNum}</button>`
       );
     }
 
@@ -509,7 +583,17 @@
     setInterval(tick, 1000);
   }
 
-  // -----------------------------
+  
+  function hideInvalidReviewButtons() {
+    $(".js-open-review").each(function () {
+      const url = $(this).data("url");
+      if (url == null || url === "" || String(url).toLowerCase() === "null") {
+        $(this).hide();
+      }
+    });
+  }
+
+// -----------------------------
   // Events
   // -----------------------------
   function bindEvents() {
@@ -641,23 +725,29 @@
     // open review frame
     $(".js-open-review").on("click", function () {
       const url = $(this).data("url");
+      if (url == null || url === "" || String(url).toLowerCase() === "null") return;
       $("#reviewFrame").attr("src", url);
       openModal("#reviewModal");
     });
-
-    // room modal
-    $("#openRoomInfo").on("click", function () {
+    // room info / reservation (N개 객실 대응)
+    $(document).on("click", ".js-open-room-info", function () {
+      const idx = parseInt($(this).data("room"), 10);
+      setActiveRoom(isNaN(idx) ? 0 : idx);
+      fillRoomModal();
       openModal("#roomModal");
     });
 
-    // reserve (room card)
-    $("#openReservation").on("click", function () {
+    $(document).on("click", ".js-open-reservation", function () {
+      const idx = parseInt($(this).data("room"), 10);
+      setActiveRoom(isNaN(idx) ? 0 : idx);
+      fillReservationModal();
       openModal("#reservationModal");
     });
 
     // reserve (room modal)
     $("#roomReserve").on("click", function () {
       closeModal("#roomModal");
+      fillReservationModal();
       openModal("#reservationModal");
     });
 
@@ -688,7 +778,24 @@
     });
   }
 
-  // -----------------------------
+  
+  function fillRoomModal() {
+    const room = getActiveRoom();
+    if (!room) return;
+    $("#roomModalTitle").text(`${room.name} 객실`);
+    $("#roomModalGuests").text(`기준 ${room.minGuests}인 / 최대 ${room.maxGuests}인`);
+    $("#roomModalDesc").text(room.description);
+    renderMosaic($("#roomModalMosaic"), `room_modal_${activeRoomIndex}`, room.images);
+    refreshIcons();
+  }
+
+  function fillReservationModal() {
+    const room = getActiveRoom();
+    if (!room) return;
+    $("#rvRoomName").text(`객실 ${room.name}`);
+  }
+
+// -----------------------------
   // Init
   // -----------------------------
   $(function () {
@@ -696,19 +803,16 @@
     renderMosaic($("#mainMosaic"), "main", mainImages);
     renderFacilities();
     renderAttractions();
-    renderRoomCard();
-
-    // fill room modal
-    $("#roomModalTitle").text(`${roomD.name} 객실`);
-    $("#roomModalGuests").text(`기준 ${roomD.minGuests}인 / 최대 ${roomD.maxGuests}인`);
-    $("#roomModalDesc").text(roomD.description);
-    renderMosaic($("#roomModalMosaic"), "roomD", roomD.images);
-
-    // reservation modal
-    $("#rvRoomName").text(`객실 ${roomD.name}`);
+    renderRooms();
+    // fill room modal / reservation modal (active room 기반)
+    fillRoomModal();
+    fillReservationModal();
 
     // icons
     refreshIcons();
+
+    // hide review buttons with null url
+    hideInvalidReviewButtons();
 
     // events
     bindEvents();
