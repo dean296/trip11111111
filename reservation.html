@@ -10,6 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.476.0/dist/umd/lucide.min.js"></script>
   <style>
     body{font-family:'Noto Sans KR',system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial;}
     .safe-bottom{padding-bottom:env(safe-area-inset-bottom);}
@@ -35,27 +36,37 @@
     </div>
 
     <div class="p-5 pb-10 safe-bottom">
-      <!-- Lowest price card (same timer as main) -->
-      <div class="rounded-2xl overflow-hidden shadow-lg border border-gray-200 mb-5">
-        <div class="bg-[#0B0F1A] text-white p-5 relative">
-          <div class="text-[11px] font-black tracking-widest text-red-500">LOWEST PRICE GUARANTEE</div>
-          <div class="mt-2 text-2xl font-black leading-tight">24시간 한정<br/>최저가 보장</div>
-          <div class="mt-3 text-[12px] text-white/80 font-medium space-y-1">
-            <div>🔥 상담 고객 한정 특별가를 드립니다.</div>
-            <div>🏷️ 타 예약사이트 대비 <span class="text-red-400 font-black">최저가 보장</span></div>
-            <div>💸 최저가를 발견하시면 차액을 보상해드립니다.</div>
-          </div>
-
-          <div class="absolute right-4 top-4">
-            <div class="text-[10px] font-black bg-white/15 border border-white/20 px-3 py-1.5 rounded-full">고객센터 이용고객 대상</div>
-          </div>
-
-          <div class="absolute right-4 bottom-4">
-            <div class="flex items-center gap-2 bg-black/40 border border-white/15 px-3 py-1.5 rounded-xl">
-              <span class="text-[11px] font-black text-yellow-300">⏱</span>
-              <span id="rsTimer" class="font-mono font-black tracking-tight text-[14px]">00:00:00</span>
+      <!-- Lowest price card (메인페이지와 동일) -->
+      <div class="bg-[#121212] p-5 rounded-2xl border border-gray-800 mb-5 shadow-xl relative overflow-hidden group">
+        <div class="absolute top-0 right-0 -mr-4 -mt-4 p-10 bg-red-500/10 rounded-full blur-2xl group-hover:bg-red-500/20 transition-all duration-700"></div>
+        <div class="relative z-10">
+          <div class="flex justify-between items-start mb-1">
+            <div class="flex items-center gap-2">
+              <div class="w-1 h-4 bg-[#FF4F4F] rounded-full shadow-[0_0_8px_rgba(255,79,79,0.8)]"></div>
+              <h2 class="text-[12px] font-black text-[#FF4F4F] uppercase tracking-tighter leading-none">LOWEST PRICE <br /> GUARANTEE</h2>
+            </div>
+            <div class="relative">
+              <div class="bg-white text-black text-[10px] font-black px-2.5 py-1.5 rounded-xl shadow-lg animate-bounce whitespace-nowrap">
+                고객센터 이용고객 대상
+                <div class="absolute -bottom-1 right-3 w-2 h-2 bg-white rotate-45"></div>
+              </div>
             </div>
           </div>
+          <div class="pt-1 relative">
+            <div class="pr-24">
+              <h3 class="text-white text-2xl font-black tracking-tight leading-tight">24시간 한정</h3>
+              <h3 class="text-[#FFEA00] text-2xl font-black tracking-tight leading-tight [text-shadow:0_0_15px_rgba(255,234,0,0.6)]">최저가 보장</h3>
+            </div>
+            <div class="absolute top-1 right-0 flex items-center gap-1.5 bg-red-500/10 px-2 py-1.5 rounded-lg border border-red-500/30">
+              <i data-lucide="clock" style="width:12px;height:12px" class="text-[#FFEA00]"></i>
+              <span id="rsTimer" class="text-[13px] font-black font-mono text-[#FFEA00] tracking-tighter">00:00:00</span>
+            </div>
+          </div>
+        </div>
+        <div class="text-[13px] text-gray-400 mt-4 leading-relaxed font-medium relative z-10 space-y-0.5">
+          <p>🎁 상담 고객 한정 특별가를 드립니다.</p>
+          <p>📣 타 예약사이트 대비 <span class="text-[#FF4F4F] font-black">최저가 보장</span></p>
+          <p>🏸 최저가를 발견하시면 차액을 보상해드립니다.</p>
         </div>
       </div>
 
@@ -138,11 +149,22 @@
 
 <!-- 결제 금액 -->
 <div class="mt-10">
-  <div class="flex items-center justify-between">
-    <div class="text-[15px] font-black text-gray-900">결제 금액</div>
-    <div class="text-right leading-tight">
-      <div id="rsOriginalAmount" class="text-[12px] font-bold text-gray-400 line-through">-</div>
-      <div id="rsFinalAmount" class="text-[18px] font-black text-blue-600">-</div>
+  <div class="flex items-start justify-between">
+    <div>
+      <div class="text-[15px] font-black text-gray-900">결제 금액</div>
+      <div class="mt-2">
+        <span class="bg-blue-50 text-blue-600 text-[10px] font-extrabold px-2 py-0.5 rounded border border-blue-100 inline-block shadow-sm">타사이트 대비 최저가보장</span>
+      </div>
+    </div>
+    <div class="flex flex-col items-end -mt-1">
+      <div class="flex items-center gap-1.5">
+        <span id="rsDiscountPct" class="text-red-500 font-extrabold text-xl">-</span>
+        <span id="rsOriginalAmount" class="text-gray-300 line-through text-xs font-medium">-</span>
+      </div>
+      <div class="flex flex-col items-end -mt-0.5">
+        <span class="text-blue-600 text-[11px] font-black">최대할인가</span>
+        <div class="flex items-center"><span id="rsFinalAmount" class="text-3xl font-black text-gray-900 tracking-tighter">-</span></div>
+      </div>
     </div>
   </div>
 
@@ -356,6 +378,9 @@
     rsSetVh();
     window.addEventListener('resize', rsSetVh);
 
+    // lucide icons
+    try{ if (window.lucide && typeof lucide.createIcons === 'function') lucide.createIcons(); } catch {}
+
     // ---------- helpers
     function comma(n){
       const x = Number(n);
@@ -443,14 +468,16 @@
       window.rsFinalAmountNumber = final;
 
       document.getElementById('rsTotalPrice').textContent = `${comma(total)}원`;
-      const $pa = document.getElementById('rsProductAmount');
-      const $da = document.getElementById('rsDiscountAmount');
       const $oa = document.getElementById('rsOriginalAmount');
       const $fa = document.getElementById('rsFinalAmount');
-      if ($pa) $pa.textContent = `${comma(total)}원`;
-      if ($da) $da.textContent = `-${comma(discount)}원`;
-      if ($oa) $oa.textContent = `${comma(total)}원`;
+      const $pct = document.getElementById('rsDiscountPct');
+      const $dv = document.getElementById('rsDiscountValue');
+
+      const pct = total > 0 ? Math.round((1 - (final / total)) * 100) : 0;
+      if ($pct) $pct.textContent = `${pct}%`;
+      if ($oa) $oa.textContent = `${comma(total)}`;
       if ($fa) $fa.textContent = `${comma(final)}원`;
+      if ($dv) $dv.textContent = `-${comma(discount)}원`;
       if (window.rsUpdatePayBtn) window.rsUpdatePayBtn();
     })();
 
