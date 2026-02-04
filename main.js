@@ -87,6 +87,11 @@
 
   let selectedPayment = "card";
 
+  // booking modal (temp range selection)
+  let bookingTempStart = startDate;
+  let bookingTempEnd = endDate;
+  let bookingViewMonth = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+
   // -----------------------------
   // Utils
   // -----------------------------
@@ -109,11 +114,25 @@
     return `${mm}.${dd}`;
   }
 
+  function formatFullDateKR(d) {
+    return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일`;
+  }
+
+  function isSameDay(a, b) {
+    return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  }
+
   function toISODate(d) {
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, "0");
     const day = String(d.getDate()).padStart(2, "0");
     return `${y}-${m}-${day}`;
+  }
+
+  function fromISODate(iso) {
+    const parts = String(iso).split("-").map((x) => parseInt(x, 10));
+    if (parts.length !== 3 || parts.some((n) => Number.isNaN(n))) return normalizeDate(new Date());
+    return normalizeDate(new Date(parts[0], parts[1] - 1, parts[2]));
   }
 
   function nights() {
@@ -207,6 +226,13 @@
     refreshIcons();
     // HTML: <span id="facilityCount">0</span>
     $("#facilityCount").text(allFacilities.length);
+
+    // 편의시설이 4개 이하인 경우: '모두보기' 버튼 미표시
+    if (allFacilities.length <= 4) {
+      $("#openFacilities").hide();
+    } else {
+      $("#openFacilities").show();
+    }
   }
 
   function renderAttractions() {
@@ -262,14 +288,10 @@
     // 메인 화면(객실 선택 > 일정 및 인원) 요약 텍스트
     $("#scheduleSummary").text(`${formatDate(startDate)} ~ ${formatDate(endDate)} (${nightsText}박) / ${totalGuests()}명`);
 
-    // booking modal inputs
-    $("#startDate").val(toISODate(startDate));
-    $("#endDate").val(toISODate(endDate));
     $("#countAdults").text(adults);
     $("#countChildren").text(children);
     $("#countInfants").text(infants);
-    $("#bookingSummaryDates").text(`${formatDate(startDate)} ~ ${formatDate(endDate)} (${nightsText}박)`);
-    $("#bookingSummaryGuests").text(`${totalGuests()}명`);
+    // booking modal: 날짜는 임시 선택(bookingTempStart/End)을 사용하므로 여기서 덮어쓰지 않음
 
     // reservation view summary
     $("#rvDates").text(`${formatDate(startDate)} ~ ${formatDate(endDate)} (${nightsText}박)`);
@@ -307,6 +329,23 @@
   // -----------------------------
   // Gallery
   // -----------------------------
+  function positionGalleryNav() {
+    const stage = $("#galleryStage").get(0);
+    const img = $("#galleryImage").get(0);
+    if (!stage || !img) return;
+
+    const stageRect = stage.getBoundingClientRect();
+    const imgRect = img.getBoundingClientRect();
+
+    // 버튼이 '사진 안쪽'에 위치하도록, 실제 렌더된 이미지 영역을 기준으로 inset 계산
+    const inset = 10;
+    const left = Math.max(inset, Math.round(imgRect.left - stageRect.left + inset));
+    const right = Math.max(inset, Math.round(stageRect.right - imgRect.right + inset));
+
+    $("#galleryPrev").css({ left: `${left}px`, right: "auto" });
+    $("#galleryNext").css({ right: `${right}px`, left: "auto" });
+  }
+
   function openGallery(galleryKey, index) {
     currentGallery = galleryKey;
     galleryActiveIndex = index;
@@ -320,8 +359,15 @@
 
     galleryActiveIndex = ((galleryActiveIndex % imgs.length) + imgs.length) % imgs.length;
 
-    $("#galleryImage").attr("src", imgs[galleryActiveIndex]);
     $("#galleryCounter").text(`${galleryActiveIndex + 1} / ${imgs.length}`);
+
+    // 이미지 로드 후: 좌/우 버튼을 이미지 내부로 재배치
+    $("#galleryImage").off("load").on("load", function () {
+      positionGalleryNav();
+    });
+    $("#galleryImage").attr("src", imgs[galleryActiveIndex]);
+    // 캐시된 이미지/빠른 렌더링 케이스 대비
+    setTimeout(positionGalleryNav, 0);
 
     const $thumbs = $("#galleryThumbs");
     $thumbs.empty();
@@ -329,8 +375,8 @@
     imgs.forEach((src, i) => {
       const isActive = i === galleryActiveIndex;
       $thumbs.append(`
-        <button class="shrink-0 rounded-xl overflow-hidden border ${isActive ? "border-blue-600" : "border-gray-200"}" data-idx="${i}" aria-label="thumb ${i + 1}">
-          <img src="${src}" alt="thumb-${i}" class="w-16 h-12 object-cover" />
+        <button class="shrink-0 rounded-xl overflow-hidden border ${isActive ? "border-blue-600" : "border-gray-200"}" data-idx="${i}" aria-label="thumb ${i + 1}" ${isActive ? "aria-current='true'" : ""}>
+          <img src="${src}" alt="thumb-${i}" class="gallery-thumb-img" />
         </button>
       `);
     });
@@ -345,6 +391,100 @@
     $("#galleryImage").off("error").on("error", function () {
       $(this).attr("src", "https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=800");
     });
+
+    // 캐시된 이미지 등 load 이벤트가 늦게/안 오는 경우 대비
+    setTimeout(positionGalleryNav, 0);
+
+    // 현재 보고 있는 썸네일이 항상 보이도록 자동 스크롤
+    const $active = $thumbs.find(`button[data-idx='${galleryActiveIndex}']`);
+    if ($active.length) {
+      const el = $active.get(0);
+      const manualScroll = () => {
+        const left = $active.position().left + $thumbs.scrollLeft();
+        const target = left - $thumbs.width() / 2 + $active.outerWidth() / 2;
+        $thumbs.scrollLeft(target);
+      };
+
+      if (el && typeof el.scrollIntoView === "function") {
+        try {
+          el.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+        } catch {
+          manualScroll();
+        }
+      } else {
+        manualScroll();
+      }
+    }
+  }
+
+  // -----------------------------
+  // Booking calendar (From ~ To)
+  // -----------------------------
+  function renderBookingCalendar() {
+    const y = bookingViewMonth.getFullYear();
+    const m = bookingViewMonth.getMonth();
+    $("#bookingMonthLabel").text(`${y}년 ${m + 1}월`);
+
+    const first = new Date(y, m, 1);
+    const startWeekDay = first.getDay(); // 0: Sun
+    const daysInMonth = new Date(y, m + 1, 0).getDate();
+
+    const totalCells = Math.ceil((startWeekDay + daysInMonth) / 7) * 7;
+    const $grid = $("#bookingCalendarGrid");
+    $grid.empty();
+
+    for (let i = 0; i < totalCells; i++) {
+      const dayNum = i - startWeekDay + 1;
+      if (dayNum < 1 || dayNum > daysInMonth) {
+        $grid.append(`<div class="booking-cal-day is-empty" aria-hidden="true"></div>`);
+        continue;
+      }
+
+      const d = normalizeDate(new Date(y, m, dayNum));
+      const iso = toISODate(d);
+
+      const cls = ["booking-cal-day"];
+
+      if (bookingTempStart && bookingTempEnd) {
+        if (isSameDay(d, bookingTempStart)) cls.push("range-start");
+        if (isSameDay(d, bookingTempEnd)) cls.push("range-end");
+        if (d.getTime() > bookingTempStart.getTime() && d.getTime() < bookingTempEnd.getTime()) cls.push("in-range");
+      } else if (bookingTempStart && !bookingTempEnd) {
+        if (isSameDay(d, bookingTempStart)) cls.push("range-start");
+      }
+
+      $grid.append(
+        `<button type="button" class="${cls.join(" ")}" data-date="${iso}" aria-label="${iso}">${dayNum}</button>`
+      );
+    }
+
+    // day click
+    $grid.find("button[data-date]").off("click").on("click", function () {
+      const iso = String($(this).data("date"));
+      const next = fromISODate(iso);
+
+      if (!bookingTempStart || (bookingTempStart && bookingTempEnd)) {
+        bookingTempStart = next;
+        bookingTempEnd = null;
+      } else {
+        // start만 있는 상태
+        if (next.getTime() < bookingTempStart.getTime()) {
+          bookingTempStart = next;
+        } else if (next.getTime() === bookingTempStart.getTime()) {
+          bookingTempEnd = null;
+        } else {
+          bookingTempEnd = next;
+        }
+      }
+
+      renderBookingModal();
+    });
+  }
+
+  function renderBookingModal() {
+    $("#bookingCheckInText").text(bookingTempStart ? formatFullDateKR(bookingTempStart) : "-");
+    $("#bookingCheckOutText").text(bookingTempEnd ? formatFullDateKR(bookingTempEnd) : "-");
+    renderBookingCalendar();
   }
 
   // -----------------------------
@@ -375,7 +515,21 @@
   function bindEvents() {
     // open booking modal
     $("#openBooking").on("click", function () {
+      bookingTempStart = startDate;
+      bookingTempEnd = endDate;
+      bookingViewMonth = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+      renderBookingModal();
       openModal("#bookingModal");
+    });
+
+    // calendar month nav
+    $("#bookingCalPrev").on("click", function () {
+      bookingViewMonth = new Date(bookingViewMonth.getFullYear(), bookingViewMonth.getMonth() - 1, 1);
+      renderBookingCalendar();
+    });
+    $("#bookingCalNext").on("click", function () {
+      bookingViewMonth = new Date(bookingViewMonth.getFullYear(), bookingViewMonth.getMonth() + 1, 1);
+      renderBookingCalendar();
     });
 
     // close modal buttons
@@ -407,29 +561,18 @@
       renderState();
     });
 
-    // date inputs
-    $("#startDate").on("change", function () {
-      const d = normalizeDate(new Date($(this).val()));
-      startDate = d;
-      if (endDate.getTime() <= startDate.getTime()) {
-        endDate = normalizeDate(new Date(startDate.getTime() + 86400000));
-      }
-      renderState();
-    });
-
-    $("#endDate").on("change", function () {
-      const d = normalizeDate(new Date($(this).val()));
-      if (d.getTime() <= startDate.getTime()) {
-        toast("체크아웃은 체크인 이후 날짜여야 합니다.");
-        endDate = normalizeDate(new Date(startDate.getTime() + 86400000));
-      } else {
-        endDate = d;
-      }
-      renderState();
-    });
-
     // apply booking
     $("#bookingApply").on("click", function () {
+      if (!bookingTempStart || !bookingTempEnd) {
+        toast("체크인/체크아웃을 선택해주세요.");
+        return;
+      }
+      if (bookingTempEnd.getTime() <= bookingTempStart.getTime()) {
+        toast("체크아웃은 체크인 이후 날짜여야 합니다.");
+        return;
+      }
+      startDate = bookingTempStart;
+      endDate = bookingTempEnd;
       closeModal("#bookingModal");
       renderState();
     });
@@ -450,6 +593,39 @@
     $("#galleryNext").on("click", function () {
       galleryActiveIndex += 1;
       renderGallery();
+    });
+
+    // 모바일: 좌/우 스와이프로 이미지 넘기기
+    let gTouchStartX = 0;
+    let gTouchStartY = 0;
+    $("#galleryStage").on("touchstart", function (e) {
+      const t = e.originalEvent.touches && e.originalEvent.touches[0];
+      if (!t) return;
+      gTouchStartX = t.clientX;
+      gTouchStartY = t.clientY;
+    });
+    $("#galleryStage").on("touchend", function (e) {
+      const t = e.originalEvent.changedTouches && e.originalEvent.changedTouches[0];
+      if (!t) return;
+      const dx = t.clientX - gTouchStartX;
+      const dy = t.clientY - gTouchStartY;
+
+      // 가로 스와이프만 인식
+      if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.2) {
+        if (dx < 0) {
+          galleryActiveIndex += 1;
+        } else {
+          galleryActiveIndex -= 1;
+        }
+        renderGallery();
+      }
+    });
+
+    // 화면 회전/리사이즈 시 버튼 위치 재계산
+    $(window).on("resize", function () {
+      if ($("#galleryModal").hasClass("is-open")) {
+        positionGalleryNav();
+      }
     });
 
     // open facilities

@@ -73,16 +73,16 @@
       <div id="facilitiesModal" class="modal-overlay fixed inset-y-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] z-[900] items-end justify-center bg-black/60 modal-fade" role="dialog" aria-modal="true">
         <div class="bg-white w-full h-[78vh] rounded-t-3xl flex flex-col shadow-2xl overflow-hidden modal-sheet">
           <div class="p-5 border-b border-gray-100 flex items-center justify-between">
-            <h3 class="text-lg font-black">편의시설</h3>
+            <h3 class="text-lg font-black">숙소 테마 및 시설</h3>
             <button class="js-close-modal p-2 rounded-xl bg-gray-100 active:scale-95" data-target="#facilitiesModal" aria-label="닫기">
               <i data-lucide="x" style="width:18px;height:18px"></i>
             </button>
           </div>
-          <div class="p-5 overflow-auto hide-scrollbar">
+          <div class="p-5 flex-1 overflow-auto hide-scrollbar">
             <div id="facilitiesAll" class="grid grid-cols-2 gap-x-4 gap-y-5"></div>
           </div>
           <div class="p-4 bg-white border-t border-gray-100 safe-bottom">
-            <button class="js-close-modal w-full bg-blue-600 text-white font-black py-4 rounded-2xl shadow-lg active:scale-[0.98] transition-all" data-target="#facilitiesModal">확인</button>
+            <button class="js-close-modal w-full bg-blue-600 text-white font-black py-4 rounded-2xl shadow-lg active:scale-[0.98] transition-all" data-target="#facilitiesModal">닫기</button>
           </div>
         </div>
       </div>
@@ -114,16 +114,16 @@
               <i data-lucide="x" style="width:22px;height:22px"></i>
             </button>
           </div>
-          <div class="flex-1 flex items-center justify-center px-3">
-            <button id="galleryPrev" class="p-2 text-white/80 active:scale-95" aria-label="이전">
-              <i data-lucide="chevron-left" style="width:32px;height:32px"></i>
-            </button>
-            <div class="flex-1 flex items-center justify-center">
-              <img id="galleryImage" src="" alt="gallery" class="max-h-[72vh] w-auto rounded-2xl shadow-2xl" />
+          <div class="flex-1 flex items-center justify-center px-0">
+            <div id="galleryStage" class="relative w-full flex items-center justify-center">
+              <img id="galleryImage" src="" alt="gallery" class="gallery-image" />
+              <button id="galleryPrev" class="gallery-nav left" aria-label="이전">
+                <i data-lucide="chevron-left" style="width:32px;height:32px"></i>
+              </button>
+              <button id="galleryNext" class="gallery-nav right" aria-label="다음">
+                <i data-lucide="chevron-right" style="width:32px;height:32px"></i>
+              </button>
             </div>
-            <button id="galleryNext" class="p-2 text-white/80 active:scale-95" aria-label="다음">
-              <i data-lucide="chevron-right" style="width:32px;height:32px"></i>
-            </button>
           </div>
           <div class="px-4 pb-5">
             <div id="galleryThumbs" class="flex gap-2 overflow-x-auto hide-scrollbar"></div>
@@ -135,53 +135,61 @@
       <div id="bookingModal" class="modal-overlay fixed inset-y-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] z-[900] items-end justify-center bg-black/60 modal-fade" role="dialog" aria-modal="true">
         <div class="bg-white w-full h-[86vh] rounded-t-3xl flex flex-col shadow-2xl overflow-hidden modal-sheet">
           <div class="p-5 border-b border-gray-100 flex items-center justify-between">
-            <div>
-              <div class="text-[11px] font-bold text-gray-400">일정 및 인원</div>
-              <div class="text-lg font-black text-gray-900">예약 조건 선택</div>
-            </div>
+            <div class="text-lg font-black text-gray-900">일정 및 인원 선택</div>
             <button class="js-close-modal p-2 rounded-xl bg-gray-100 active:scale-95" data-target="#bookingModal" aria-label="닫기">
               <i data-lucide="x" style="width:18px;height:18px"></i>
             </button>
           </div>
 
           <div class="p-5 overflow-auto hide-scrollbar">
-            <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100">
-              <h4 class="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
-                <i data-lucide="calendar" style="width:16px;height:16px" class="text-blue-600"></i>
-                일정
-              </h4>
-              <div class="grid grid-cols-2 gap-3">
-                <label class="text-xs font-bold text-gray-500">
-                  체크인
-                  <input id="startDate" type="date" class="mt-2 w-full border border-gray-200 rounded-xl px-3 py-3 text-sm font-bold" />
-                </label>
-                <label class="text-xs font-bold text-gray-500">
-                  체크아웃
-                  <input id="endDate" type="date" class="mt-2 w-full border border-gray-200 rounded-xl px-3 py-3 text-sm font-bold" />
-                </label>
+            <!-- From ~ To (single calendar) -->
+            <div class="grid grid-cols-2 gap-3">
+              <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                <div class="text-xs font-bold text-gray-400">체크인</div>
+                <div id="bookingCheckInText" class="mt-1 text-[14px] font-black text-gray-900">-</div>
               </div>
-              <div class="mt-3 text-[12px] text-gray-500 font-medium">선택한 일정: <span id="bookingSummaryDates" class="font-black text-gray-800"></span></div>
+              <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                <div class="text-xs font-bold text-gray-400">체크아웃</div>
+                <div id="bookingCheckOutText" class="mt-1 text-[14px] font-black text-gray-900">-</div>
+              </div>
             </div>
 
-            <div class="mt-5 bg-gray-50 p-4 rounded-2xl border border-gray-100">
-              <h4 class="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+            <div class="mt-4">
+              <div class="flex items-center justify-between px-1">
+                <button id="bookingCalPrev" class="p-2 rounded-xl bg-gray-100 active:scale-95" aria-label="이전 달">
+                  <i data-lucide="chevron-left" style="width:18px;height:18px"></i>
+                </button>
+                <div id="bookingMonthLabel" class="text-base font-black text-gray-900">-</div>
+                <button id="bookingCalNext" class="p-2 rounded-xl bg-gray-100 active:scale-95" aria-label="다음 달">
+                  <i data-lucide="chevron-right" style="width:18px;height:18px"></i>
+                </button>
+              </div>
+
+              <div class="mt-3 grid grid-cols-7 text-center text-[12px] font-bold text-gray-400">
+                <div>일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div>토</div>
+              </div>
+              <div id="bookingCalendarGrid" class="mt-2 booking-cal-grid"></div>
+            </div>
+
+            <div class="mt-6 pt-5 border-t border-gray-100">
+              <h4 class="text-sm font-black text-gray-900 mb-4 flex items-center gap-2">
                 <i data-lucide="users" style="width:16px;height:16px" class="text-blue-600"></i>
-                인원
+                방문인원
               </h4>
 
-              <div class="space-y-3">
+              <div class="space-y-4">
                 <div class="flex items-center justify-between">
                   <div>
                     <div class="text-[14px] font-black text-gray-900">성인</div>
-                    <div class="text-[12px] text-gray-500 font-medium">만 14세 이상</div>
+                    <div class="text-[12px] text-gray-500 font-medium">만 13세 이상</div>
                   </div>
-                  <div class="flex items-center gap-2">
-                    <button class="js-counter bg-gray-100 rounded-xl p-2 active:scale-95" data-field="adults" data-delta="-1" aria-label="감소">
-                      <i data-lucide="minus" style="width:18px;height:18px"></i>
+                  <div class="flex items-center gap-3">
+                    <button class="js-counter w-11 h-11 rounded-full border border-gray-200 bg-white flex items-center justify-center active:scale-95" data-field="adults" data-delta="-1" aria-label="감소">
+                      <i data-lucide="minus" style="width:18px;height:18px" class="text-gray-300"></i>
                     </button>
                     <div id="countAdults" class="w-10 text-center font-black text-gray-900">2</div>
-                    <button class="js-counter bg-gray-100 rounded-xl p-2 active:scale-95" data-field="adults" data-delta="1" aria-label="증가">
-                      <i data-lucide="plus" style="width:18px;height:18px"></i>
+                    <button class="js-counter w-11 h-11 rounded-full border border-gray-200 bg-white flex items-center justify-center active:scale-95" data-field="adults" data-delta="1" aria-label="증가">
+                      <i data-lucide="plus" style="width:18px;height:18px" class="text-gray-500"></i>
                     </button>
                   </div>
                 </div>
@@ -189,15 +197,15 @@
                 <div class="flex items-center justify-between">
                   <div>
                     <div class="text-[14px] font-black text-gray-900">아동</div>
-                    <div class="text-[12px] text-gray-500 font-medium">만 2세~13세</div>
+                    <div class="text-[12px] text-gray-500 font-medium">만 2세 ~ 12세</div>
                   </div>
-                  <div class="flex items-center gap-2">
-                    <button class="js-counter bg-gray-100 rounded-xl p-2 active:scale-95" data-field="children" data-delta="-1" aria-label="감소">
-                      <i data-lucide="minus" style="width:18px;height:18px"></i>
+                  <div class="flex items-center gap-3">
+                    <button class="js-counter w-11 h-11 rounded-full border border-gray-200 bg-white flex items-center justify-center active:scale-95" data-field="children" data-delta="-1" aria-label="감소">
+                      <i data-lucide="minus" style="width:18px;height:18px" class="text-gray-300"></i>
                     </button>
                     <div id="countChildren" class="w-10 text-center font-black text-gray-900">0</div>
-                    <button class="js-counter bg-gray-100 rounded-xl p-2 active:scale-95" data-field="children" data-delta="1" aria-label="증가">
-                      <i data-lucide="plus" style="width:18px;height:18px"></i>
+                    <button class="js-counter w-11 h-11 rounded-full border border-gray-200 bg-white flex items-center justify-center active:scale-95" data-field="children" data-delta="1" aria-label="증가">
+                      <i data-lucide="plus" style="width:18px;height:18px" class="text-gray-500"></i>
                     </button>
                   </div>
                 </div>
@@ -205,26 +213,24 @@
                 <div class="flex items-center justify-between">
                   <div>
                     <div class="text-[14px] font-black text-gray-900">유아</div>
-                    <div class="text-[12px] text-gray-500 font-medium">만 0세~1세</div>
+                    <div class="text-[12px] text-gray-500 font-medium">만 2세 미만</div>
                   </div>
-                  <div class="flex items-center gap-2">
-                    <button class="js-counter bg-gray-100 rounded-xl p-2 active:scale-95" data-field="infants" data-delta="-1" aria-label="감소">
-                      <i data-lucide="minus" style="width:18px;height:18px"></i>
+                  <div class="flex items-center gap-3">
+                    <button class="js-counter w-11 h-11 rounded-full border border-gray-200 bg-white flex items-center justify-center active:scale-95" data-field="infants" data-delta="-1" aria-label="감소">
+                      <i data-lucide="minus" style="width:18px;height:18px" class="text-gray-300"></i>
                     </button>
                     <div id="countInfants" class="w-10 text-center font-black text-gray-900">0</div>
-                    <button class="js-counter bg-gray-100 rounded-xl p-2 active:scale-95" data-field="infants" data-delta="1" aria-label="증가">
-                      <i data-lucide="plus" style="width:18px;height:18px"></i>
+                    <button class="js-counter w-11 h-11 rounded-full border border-gray-200 bg-white flex items-center justify-center active:scale-95" data-field="infants" data-delta="1" aria-label="증가">
+                      <i data-lucide="plus" style="width:18px;height:18px" class="text-gray-500"></i>
                     </button>
                   </div>
                 </div>
               </div>
-
-              <div class="mt-3 text-[12px] text-gray-500 font-medium">총 인원: <span id="bookingSummaryGuests" class="font-black text-gray-800"></span></div>
             </div>
           </div>
 
           <div class="p-4 bg-white border-t border-gray-100 safe-bottom">
-            <button id="bookingApply" class="w-full bg-blue-600 text-white font-black py-4 rounded-2xl shadow-lg active:scale-[0.98] transition-all text-lg">적용하기</button>
+            <button id="bookingApply" class="w-full bg-blue-600 text-white font-black py-4 rounded-2xl shadow-lg active:scale-[0.98] transition-all text-lg">선택 완료</button>
           </div>
         </div>
       </div>
