@@ -14,6 +14,9 @@
     body{font-family:'Noto Sans KR',system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial;}
     .safe-bottom{padding-bottom:env(safe-area-inset-bottom);}
     .rs-lock{overflow:hidden;}
+    :root{ --vh: 1vh; }
+    .min-h-screen{ min-height: calc(var(--vh, 1vh) * 100) !important; }
+    .h-screen{ height: calc(var(--vh, 1vh) * 100) !important; }
   </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
@@ -120,7 +123,7 @@
           <div id="rsOtpWrap" class="hidden">
             <div class="text-[12px] font-bold text-gray-500">인증번호 <span class="text-red-500">*</span></div>
       <div class="mt-2 flex items-center gap-2">
-        <input id="rsOtp" inputmode="numeric" type="tel" class="flex-1 min-w-0 border border-gray-200 rounded-xl px-4 py-3 text-[14px] font-medium outline-none focus:ring-2 focus:ring-blue-500" placeholder="인증번호 4자리를 입력해주세요." maxlength="4" />
+        <input id="rsOtp" autocomplete="one-time-code" name="one-time-code" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="numeric" type="tel" class="flex-1 min-w-0 border border-gray-200 rounded-xl px-4 py-3 text-[14px] font-medium outline-none focus:ring-2 focus:ring-blue-500" placeholder="인증번호 4자리를 입력해주세요." maxlength="4" />
         <button id="rsOtpVerifyBtn" disabled class="shrink-0 px-4 py-3 rounded-xl text-[13px] font-black bg-gray-200 text-gray-400 max-w-full">인증하기</button>
       </div>
           </div>
@@ -137,7 +140,10 @@
 <div class="mt-10">
   <div class="flex items-center justify-between">
     <div class="text-[15px] font-black text-gray-900">결제 금액</div>
-    <div id="rsFinalAmount" class="text-[18px] font-black text-blue-600">-</div>
+    <div class="text-right leading-tight">
+      <div id="rsOriginalAmount" class="text-[12px] font-bold text-gray-400 line-through">-</div>
+      <div id="rsFinalAmount" class="text-[18px] font-black text-blue-600">-</div>
+    </div>
   </div>
 
   <div class="mt-4 rounded-2xl border border-blue-200 bg-blue-50 p-4 flex items-center justify-between">
@@ -343,6 +349,13 @@
 
 
   <script>
+    // ---------- viewport (Samsung Internet address bar 대응)
+    function rsSetVh(){
+      document.documentElement.style.setProperty('--vh', `${window.innerHeight * 0.01}px`);
+    }
+    rsSetVh();
+    window.addEventListener('resize', rsSetVh);
+
     // ---------- helpers
     function comma(n){
       const x = Number(n);
@@ -432,9 +445,11 @@
       document.getElementById('rsTotalPrice').textContent = `${comma(total)}원`;
       const $pa = document.getElementById('rsProductAmount');
       const $da = document.getElementById('rsDiscountAmount');
+      const $oa = document.getElementById('rsOriginalAmount');
       const $fa = document.getElementById('rsFinalAmount');
       if ($pa) $pa.textContent = `${comma(total)}원`;
       if ($da) $da.textContent = `-${comma(discount)}원`;
+      if ($oa) $oa.textContent = `${comma(total)}원`;
       if ($fa) $fa.textContent = `${comma(final)}원`;
       if (window.rsUpdatePayBtn) window.rsUpdatePayBtn();
     })();
@@ -495,6 +510,7 @@
         if ($sendBtn.disabled || verified) return;
         expectedOtp = '1234'; // 데모용(테스트: 1234)
         $otpWrap.classList.remove('hidden');
+        try{ $otp.scrollIntoView({block:'center', behavior:'smooth'}); } catch{}
         setTimeout(()=>{ try{ $otp.focus(); } catch{} }, 0);
       });
 

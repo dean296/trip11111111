@@ -5,6 +5,13 @@
 */
 
 (function ($) {
+  // 모바일(삼성인터넷 포함) 주소창 show/hide 대응
+  function setVh(){
+    document.documentElement.style.setProperty('--vh', `${window.innerHeight * 0.01}px`);
+  }
+  setVh();
+  window.addEventListener('resize', setVh);
+
   // -----------------------------
   // Data (App.tsx에서 가져온 데이터)
   // -----------------------------
